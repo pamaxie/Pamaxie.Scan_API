@@ -23,4 +23,6 @@ If you don't want to train your own data, you can just access our API for free b
 
 ### We will release further updates on the wiki once the API is available for public signup
 
+#### Possible thanks to:
+
 ![**Federal Minstry Of Research and education**](https://i.imgur.com/riyuVGf.jpg) ![**Federal Minstry Of Research and education**](https://i.imgur.com/GI9XILN.png)
