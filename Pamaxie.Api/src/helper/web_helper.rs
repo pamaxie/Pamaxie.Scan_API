@@ -1,4 +1,7 @@
+use std::str;
+
+
 pub fn function(output: String){
     println!("called helper::webHelpers::function()");
-    printLn!(output);
+    println!("{}", output);
 }
