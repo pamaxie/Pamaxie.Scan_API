@@ -1,20 +1,16 @@
-use actix_web::{App, HttpServer};
-
-mod helper
-{
-    pub mod web_helper;
-}
+use actix_web::{App, HttpServer, web};
 
 mod services
 {
     pub mod file_recognition_service;
 }
 
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
-        App::new()
-            .service(services::file_recognition_service::hello)
+        App::new().app_data(web::PayloadConfig::new(1000000 * 250))
+            .service(services::file_recognition_service::CheckApi)
             .service(services::file_recognition_service::echo)
-    }).bind(("127.0.0.1", 80))?.run().await
+    }).bind(("127.0.0.1", 8080))?.run().await
 }
