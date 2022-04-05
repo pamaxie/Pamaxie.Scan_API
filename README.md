@@ -27,6 +27,6 @@ If you don't want to train your own data, you can just access our API for free b
 
 ![**Federal Minstry Of Research and education**](https://i.imgur.com/riyuVGf.jpg) ![**Federal Minstry Of Research and education**](https://i.imgur.com/GI9XILN.png)
 
-#### Thanks for these partners for helping us host our project and keeping it alive:
+#### Thanks to these partners helping us keep this project alive:
 
 ![**eclips.is**](https://eclips.is/images/logo.png)
