@@ -41,9 +41,10 @@ pub async fn echo(req: HttpRequest, body: Bytes) -> HttpResponse {
 }
 
 async fn compute_media_content(body: &Bytes) -> HttpResponse{
+
     if infer::is_image(body.as_ref()){
         let image_result = ScanData {
-            Key: compute_hash(body),
+            Key: compute_hash(body).await,
             DataType: String::from("image"),
             ScanMachineGuid: String::from(""),
             ScanResultKey: String::from(""),
@@ -56,7 +57,7 @@ async fn compute_media_content(body: &Bytes) -> HttpResponse{
     }
     else if infer::is_video(&body.as_ref()){
         let video_result = ScanData {
-            Key: compute_hash(body),
+            Key: compute_hash(body).await,
             DataType: String::from("video"),
             ScanMachineGuid: String::from(""),
             ScanResultKey: String::from(""),
@@ -69,7 +70,7 @@ async fn compute_media_content(body: &Bytes) -> HttpResponse{
     }
     else if infer::is_app(&body.as_ref()) {
         let app_result = ScanData {
-            Key: compute_hash(body),
+            Key: compute_hash(body).await,
             DataType: String::from("app"),
             ScanMachineGuid: String::from(""),
             ScanResultKey: String::from(""),
@@ -82,7 +83,7 @@ async fn compute_media_content(body: &Bytes) -> HttpResponse{
     }
     else if infer::is_audio(body.as_ref()) {
         let audio_result = ScanData {
-            Key: compute_hash(body),
+            Key: compute_hash(body).await,
             DataType: String::from("audio"),
             ScanMachineGuid: String::from(""),
             ScanResultKey: String::from(""),
@@ -95,7 +96,7 @@ async fn compute_media_content(body: &Bytes) -> HttpResponse{
     }
     else if infer::is_archive(body.as_ref()) {
         let archive_result = ScanData {
-            Key: compute_hash(body),
+            Key: compute_hash(body).await,
             DataType: String::from("archive"),
             ScanMachineGuid: String::from(""),
             ScanResultKey: String::from(""),
@@ -108,7 +109,7 @@ async fn compute_media_content(body: &Bytes) -> HttpResponse{
     }
     else if infer::is_document(body.as_ref()){
         let document_result = ScanData {
-            Key: compute_hash(body),
+            Key: compute_hash(body).await,
             DataType: String::from("doc"),
             ScanMachineGuid: String::from(""),
             ScanResultKey: String::from(""),
@@ -121,7 +122,7 @@ async fn compute_media_content(body: &Bytes) -> HttpResponse{
     }
     else if infer::is_font(body.as_ref()){
         let font_result = ScanData {
-            Key: compute_hash(body),
+            Key: compute_hash(body).await,
             DataType: String::from("font"),
             ScanMachineGuid: String::from(""),
             ScanResultKey: String::from(""),
@@ -134,7 +135,7 @@ async fn compute_media_content(body: &Bytes) -> HttpResponse{
     }
 
     let unknown_result = ScanData {
-        Key: compute_hash(body),
+        Key: compute_hash(body).await,
         DataType: String::from("Unknown"),
         ScanMachineGuid: String::from(""),
         ScanResultKey: String::from(""),
@@ -184,7 +185,7 @@ fn get_pam_url() -> String {
     }
 }
 
-async fn compute_hash(bytes: &Bytes) -> String{
+async fn compute_hash(bytes: &Bytes) -> std::string::String{
     let mut hasher = Blake2b512::new();
     hasher.update(bytes);
     let hash_result = hasher.finalize();
