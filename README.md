@@ -21,6 +21,11 @@ The end goal of the project is to make the internet a more secure place to brows
 Our API can be either trained with your own data. 
 If you don't want to train your own data, you can just access our API for free by just creating an account on our website. 
 
+### Contribution
+If you'd like to contribute to pamaxie, feel free to check out our [wiki pages article](https://wiki.pamaxie.com/en/contribution/getting-started) on how to do so! We are always looking for people helping us, no matter what your current skill level is.
+
+Please make sure to read our [contribution guidelines](https://wiki.pamaxie.com/en/contribution/contribution-guidelines) and [code of conduct](https://wiki.pamaxie.com/en/contribution/code-of-conduct) to be aware how you're supposed to act.
+
 ### We will release further updates on the wiki once the API is available for public signup
 
 #### Possible thanks to funding by:
