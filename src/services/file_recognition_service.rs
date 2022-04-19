@@ -12,9 +12,10 @@ use reqwest::header::AUTHORIZATION;
 use s3::{Bucket, Region};
 use s3::creds::Credentials;
 use serde::Serialize;
-use crate::helper::data_helpers;
+use serde_json::to_string;
+use crate::helper::{data_helpers, database_helper};
 use crate::{s3_helpers, web_helper};
-use crate::web_helper::check_db_connection;
+use crate::helper::data_helpers::compute_hash;
 
 #[derive(Serialize)]
 pub struct ScanData{
@@ -26,17 +27,9 @@ pub struct ScanData{
     ttl: time_t
 }
 
-struct Storage {
-    name: String,
-    region: Region,
-    credentials: Credentials,
-    bucket: String,
-    location_supported: bool,
-}
-
 #[get("/")]
 pub async fn check_api() -> impl actix_web::Responder {
-    return if web_helper::check_db_connection().await
+    return if database_helper::check_db_connection().await
     {
         HttpResponse::Ok().body("Scanning API is available\n\
                                         Database is not Available")
@@ -109,29 +102,43 @@ pub async fn get_hash(req: HttpRequest, body: Bytes) -> HttpResponse {
 }
 
 async fn get_image_recognition_result(image: &Bytes) -> String{
-    let credentials = Credentials::from_env_specific(Some("S3AccessKey"), Some("S3SecretKey"), None, None);
-    let digitalOcean = Storage {
-        name: "pamaxie".into(),
-        region: Region::Custom {
-            region: "".into(),
-            endpoint: s3_helpers::get_s3_url()
-        },
-        credentials: credentials.unwrap(),
-        bucket: "pam-scan".to_string(),
-        location_supported: false,
-    };
+    let image_hash = &compute_hash(image).await;
+    let db_item = database_helper::get_scan(image_hash).await;
 
-
-
-    //Store our data in the current bucket
-    for backend in vec![digitalOcean] {
-        println!("Running {}", backend.name);
-        // Create Bucket in REGION for BUCKET
-        let bucket = Bucket::new_with_path_style(&backend.bucket, backend.region, backend.credentials).unwrap();
-        let storeData = bucket.put_object("test_file", "MESSAGE".as_bytes()).await;
-        let stuff = bucket.delete_object("test_file").await;
+    //Check if we could find an item in our database. If yes just return that.
+    // TODO: Check if the version of the neural networks to see if one is outdated and possibly which neural network is outdated. And rescan these items.
+    if db_item.1{
+        return db_item.0.to_string();
     }
 
-    return "".to_string();
+    let data_extension: String;
+    let is_compressed: bool;
+
+    //Add which file type exactly we have to ensure it is all saved in the final object.
+    if infer::image::is_png(image){
+        data_extension = "png".to_string();
+        is_compressed = false;
+    }
+    else if infer::image::is_jpeg(image) || infer::image::is_jpeg2000(image) {
+        data_extension = "jpeg".to_string();
+        is_compressed = true;
+    }
+    else if infer::image::is_gif(image){
+        data_extension = "gif".to_string();
+        is_compressed = true;
+    }
+    else if infer::image::is_webp(image){
+        data_extension = "webp".to_string();
+        is_compressed = false;
+    }
+    else {
+        data_extension = "png".to_string();
+        is_compressed = false;
+    }
+
+    let data_url = s3_helpers::store_s3(image, image_hash, &data_extension, &format!("image/{}", data_extension)).await;
+
+
+    return data_url.to_string();
 }
 

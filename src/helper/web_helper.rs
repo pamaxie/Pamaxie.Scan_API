@@ -1,6 +1,9 @@
 use std::env;
 use actix_web::http::header::AUTHORIZATION;
 use actix_web::HttpRequest;
+use std::sync::Mutex;
+use futures::future::err;
+use serde_json::{Result, Value};
 
 
 pub fn get_env_variable(env_var_name: String, alternate_value: String) -> String{
@@ -22,9 +25,10 @@ pub fn get_pam_url() -> String {
 
 ///Auth token that is used to interact with Pamaxie's database API. Please remember this has to be a project related token
 pub fn get_pam_auth_token() -> String {
-    return get_env_variable("BaseUrl".to_string(), "https://api.pamaxie.com".to_string());
+    return get_env_variable("PamAuthToken".to_string(), "".to_string());
 }
 
+//Checks if we can authenticate with the API
 pub(crate) async fn check_auth(req_header: HttpRequest) -> bool{
     let auth = req_header.head().headers.get("Authorization");
 
@@ -49,14 +53,24 @@ pub(crate) async fn check_auth(req_header: HttpRequest) -> bool{
     return response.is_success()
 }
 
-///Gets an auth token to retrieve scan data
-pub async fn get_pam_token() -> String {
+///Gets a JWT Bearer Token to connect to the database API
+pub async fn get_pam_token() -> (String, bool) {
+    eprintln!("Refreshing auth token now");
     let client = reqwest::Client::new();
     let response = client
-            .get(format!("{}{}", get_pam_url(), "db/v1/scan/login"))
-            .header("", format!("Token {}", get_pam_auth_token()))
+            .get(format!("{}{}", get_pam_url(), "/db/v1/scan/login"))
+            .header("Authorization", format!("Token {}", get_pam_auth_token()))
             .send()
             .await;
 
-    response.unwrap().status().is_success();
+    if response.is_err(){
+        eprintln!("Could not authenticate with the access token. Please validate it is correct.");
+        return ("".to_string(), false);
+    }
+
+    let response_body = response.unwrap().text().await;
+    let json_val: Value = serde_json::from_str(response_body.unwrap().as_str()).unwrap();
+    let json_token = &json_val["Token"]["Token"].as_str();
+
+    return (json_token.unwrap().to_string(), true);
 }
