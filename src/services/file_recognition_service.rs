@@ -1,15 +1,20 @@
 use std::borrow::Borrow;
 use std::env;
 use std::hash::Hash;
+use std::io::empty;
 use std::os::unix::raw::time_t;
+use std::ptr::null;
 use std::time;
 use std::str;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest, body};
 use actix_web::web::{Bytes, BytesMut};
-use blake2::{Blake2b512, Digest};
 use reqwest::header::AUTHORIZATION;
+use s3::{Bucket, Region};
+use s3::creds::Credentials;
 use serde::Serialize;
-use crate::web_helper;
+use crate::helper::data_helpers;
+use crate::{s3_helpers, web_helper};
+use crate::web_helper::check_db_connection;
 
 #[derive(Serialize)]
 pub struct ScanData{
@@ -21,9 +26,17 @@ pub struct ScanData{
     ttl: time_t
 }
 
+struct Storage {
+    name: String,
+    region: Region,
+    credentials: Credentials,
+    bucket: String,
+    location_supported: bool,
+}
+
 #[get("/")]
 pub async fn check_api() -> impl actix_web::Responder {
-    return if check_db_connection().await
+    return if web_helper::check_db_connection().await
     {
         HttpResponse::Ok().body("Scanning API is available\n\
                                         Database is not Available")
@@ -34,53 +47,43 @@ pub async fn check_api() -> impl actix_web::Responder {
     }
 }
 
+//Runs a detection on the Binary data to determine its media content
+//and
 #[post("scan/v1/detect")]
-pub async fn echo(req: HttpRequest, body: Bytes) -> HttpResponse {
-    if !check_auth(req).await{
+pub async fn detect(req: HttpRequest, body: Bytes) -> HttpResponse {
+    if !web_helper::check_auth(req).await{
         return HttpResponse::Unauthorized().finish();
     }
-    return compute_media_content(&body).await;
-}
 
-async fn compute_media_content(body: &Bytes) -> HttpResponse{
-
-    if infer::is_image(body.as_ref()){
-        let image_result = ScanData {
-            key: compute_hash(body).await,
-            data_type: String::from("image"),
-            scan_machine_guid: String::from(""),
-            scan_result: String::from(""),
-            is_user_scan: false,
-            ttl: 0
-        };
-        let json = serde_json::to_string(&image_result);
+    if infer::is_image(&body){
+        let json = serde_json::to_string(&get_image_recognition_result(&body).await);
         let response = HttpResponse::Ok().body(json.unwrap());
         return response;
     }
-    else if infer::is_video(&body.as_ref()){
+    else if infer::is_video(&body){
         return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
-    else if infer::is_app(&body.as_ref()) {
+    else if infer::is_app(&body) {
         return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
-    else if infer::is_audio(body.as_ref()) {
+    else if infer::is_audio(&body) {
         return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
-    else if infer::is_archive(body.as_ref()) {
+    else if infer::is_archive(&body) {
         return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
-    else if infer::is_document(body.as_ref()){
+    else if infer::is_document(&body){
         return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
-    else if infer::is_font(body.as_ref()){
+    else if infer::is_font(&body){
         return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
 
     let unknown_result = ScanData {
-        key: compute_hash(body).await,
+        key: data_helpers::compute_hash(&body).await,
         data_type: String::from("Unknown"),
         scan_machine_guid: String::from(""),
-        scan_result: String::from(""),
+        scan_result: String::from("Please attempt again by using a specific scanning endpoint."),
         is_user_scan: false,
         ttl: 0
     };
@@ -89,47 +92,46 @@ async fn compute_media_content(body: &Bytes) -> HttpResponse{
     return response;
 }
 
-async fn check_auth(req_header: HttpRequest) -> bool{
-    let auth = req_header.head().headers.get("Authorization");
+#[post("scan/v1/detectImage")]
+pub async fn detect_image(req: HttpRequest, body: Bytes) -> HttpResponse {
+    //if !web_helper::check_auth(req).await{
+    //    return HttpResponse::Unauthorized().finish();
+    //}
 
-    if auth.is_none()
-    {
-        return false;
+    let json = serde_json::to_string(&get_image_recognition_result(&body).await);
+    let response = HttpResponse::Ok().body(json.unwrap());
+    return response;
+}
+
+#[post("scan/v1/getHash")]
+pub async fn get_hash(req: HttpRequest, body: Bytes) -> HttpResponse {
+    return HttpResponse::Ok().body(data_helpers::compute_hash(&body).await);
+}
+
+async fn get_image_recognition_result(image: &Bytes) -> String{
+    let credentials = Credentials::from_env_specific(Some("S3AccessKey"), Some("S3SecretKey"), None, None);
+    let digitalOcean = Storage {
+        name: "pamaxie".into(),
+        region: Region::Custom {
+            region: "".into(),
+            endpoint: s3_helpers::get_s3_url()
+        },
+        credentials: credentials.unwrap(),
+        bucket: "pam-scan".to_string(),
+        location_supported: false,
+    };
+
+
+
+    //Store our data in the current bucket
+    for backend in vec![digitalOcean] {
+        println!("Running {}", backend.name);
+        // Create Bucket in REGION for BUCKET
+        let bucket = Bucket::new_with_path_style(&backend.bucket, backend.region, backend.credentials).unwrap();
+        let storeData = bucket.put_object("test_file", "MESSAGE".as_bytes()).await;
+        let stuff = bucket.delete_object("test_file").await;
     }
 
-    let auth_credential = auth.expect("").to_str();
-    let client = reqwest::Client::new();
-    let baseUrl = get_pam_url().to_string();
-    let req_url = [baseUrl, "db/v1/scan/CanAuthenticate".to_string()].join("");
-
-    let response = client
-            .get(req_url)
-            .header(AUTHORIZATION, auth_credential.expect("").to_string())
-            .send()
-            .await;
-
-    let response = response.unwrap().status();
-
-    return response.is_success()
+    return "".to_string();
 }
 
-pub(crate) fn get_pam_url() -> String {
-    return web_helper::get_env_variable("BaseUrl".to_string(), "https://api.pamaxie.com".to_string());
-}
-
-async fn compute_hash(bytes: &Bytes) -> std::string::String{
-    let mut hasher = Blake2b512::new();
-    hasher.update(bytes);
-    let hash_result = hasher.finalize();
-    return format!("{:x}", hash_result);
-}
-
-async fn check_db_connection() -> bool{
-    let client = reqwest::Client::new();
-    let response = client
-        .get(format!("{}{}", get_pam_url(), "db/v1/scan/CanConnect"))
-        .send()
-        .await;
-
-    response.unwrap().status().is_success()
-}
