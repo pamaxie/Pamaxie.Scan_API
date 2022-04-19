@@ -1,7 +1,13 @@
-use std::str;
+use std::env;
 
+pub fn get_env_variable(env_var_name: String, alternate_value: String) -> String{
+    let env_value = env::var(&env_var_name);
 
-pub fn function(output: String){
-    println!("called helper::webHelpers::function()");
-    println!("{}", output);
+    return if env_value.is_err() || env_value.as_ref().unwrap().is_empty()
+    {
+        alternate_value
+    } else
+    {
+        env_value.unwrap()
+    }
 }

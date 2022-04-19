@@ -8,19 +8,20 @@ use actix_web::web::{Bytes, BytesMut};
 use blake2::{Blake2b512, Digest};
 use reqwest::header::AUTHORIZATION;
 use serde::Serialize;
+use crate::web_helper;
 
 #[derive(Serialize)]
 pub struct ScanData{
-    Key: String,
-    DataType: String,
-    ScanMachineGuid: String,
-    IsUserScan: bool,
-    ScanResultKey: String,
-    TTL: time_t
+    key: String,
+    data_type: String,
+    scan_machine_guid: String,
+    is_user_scan: bool,
+    scan_result: String,
+    ttl: time_t
 }
 
 #[get("/")]
-pub async fn CheckApi() -> impl actix_web::Responder {
+pub async fn check_api() -> impl actix_web::Responder {
     return if check_db_connection().await
     {
         HttpResponse::Ok().body("Scanning API is available\n\
@@ -44,103 +45,43 @@ async fn compute_media_content(body: &Bytes) -> HttpResponse{
 
     if infer::is_image(body.as_ref()){
         let image_result = ScanData {
-            Key: compute_hash(body).await,
-            DataType: String::from("image"),
-            ScanMachineGuid: String::from(""),
-            ScanResultKey: String::from(""),
-            IsUserScan: false,
-            TTL: 0
+            key: compute_hash(body).await,
+            data_type: String::from("image"),
+            scan_machine_guid: String::from(""),
+            scan_result: String::from(""),
+            is_user_scan: false,
+            ttl: 0
         };
         let json = serde_json::to_string(&image_result);
         let response = HttpResponse::Ok().body(json.unwrap());
         return response;
     }
     else if infer::is_video(&body.as_ref()){
-        let video_result = ScanData {
-            Key: compute_hash(body).await,
-            DataType: String::from("video"),
-            ScanMachineGuid: String::from(""),
-            ScanResultKey: String::from(""),
-            IsUserScan: false,
-            TTL: 0
-        };
-        let json = serde_json::to_string(&video_result);
-        let response = HttpResponse::Ok().body(json.unwrap());
-        return response;
+        return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
     else if infer::is_app(&body.as_ref()) {
-        let app_result = ScanData {
-            Key: compute_hash(body).await,
-            DataType: String::from("app"),
-            ScanMachineGuid: String::from(""),
-            ScanResultKey: String::from(""),
-            IsUserScan: false,
-            TTL: 0
-        };
-        let json = serde_json::to_string(&app_result);
-        let response = HttpResponse::Ok().body(json.unwrap());
-        return response;
+        return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
     else if infer::is_audio(body.as_ref()) {
-        let audio_result = ScanData {
-            Key: compute_hash(body).await,
-            DataType: String::from("audio"),
-            ScanMachineGuid: String::from(""),
-            ScanResultKey: String::from(""),
-            IsUserScan: false,
-            TTL: 0
-        };
-        let json = serde_json::to_string(&audio_result);
-        let response = HttpResponse::Ok().body(json.unwrap());
-        return response;
+        return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
     else if infer::is_archive(body.as_ref()) {
-        let archive_result = ScanData {
-            Key: compute_hash(body).await,
-            DataType: String::from("archive"),
-            ScanMachineGuid: String::from(""),
-            ScanResultKey: String::from(""),
-            IsUserScan: false,
-            TTL: 0
-        };
-        let json = serde_json::to_string(&archive_result);
-        let response = HttpResponse::Ok().body(json.unwrap());
-        return response;
+        return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
     else if infer::is_document(body.as_ref()){
-        let document_result = ScanData {
-            Key: compute_hash(body).await,
-            DataType: String::from("doc"),
-            ScanMachineGuid: String::from(""),
-            ScanResultKey: String::from(""),
-            IsUserScan: false,
-            TTL: 0
-        };
-        let json = serde_json::to_string(&document_result);
-        let response = HttpResponse::Ok().body(json.unwrap());
-        return response;
+        return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
     else if infer::is_font(body.as_ref()){
-        let font_result = ScanData {
-            Key: compute_hash(body).await,
-            DataType: String::from("font"),
-            ScanMachineGuid: String::from(""),
-            ScanResultKey: String::from(""),
-            IsUserScan: false,
-            TTL: 0
-        };
-        let json = serde_json::to_string(&font_result);
-        let response = HttpResponse::Ok().body(json.unwrap());
-        return response;
+        return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
 
     let unknown_result = ScanData {
-        Key: compute_hash(body).await,
-        DataType: String::from("Unknown"),
-        ScanMachineGuid: String::from(""),
-        ScanResultKey: String::from(""),
-        IsUserScan: false,
-        TTL: 0
+        key: compute_hash(body).await,
+        data_type: String::from("Unknown"),
+        scan_machine_guid: String::from(""),
+        scan_result: String::from(""),
+        is_user_scan: false,
+        ttl: 0
     };
     let json = serde_json::to_string(&unknown_result);
     let response = HttpResponse::Ok().body(json.unwrap());
@@ -171,18 +112,8 @@ async fn check_auth(req_header: HttpRequest) -> bool{
     return response.is_success()
 }
 
-fn get_pam_url() -> String {
-
-    let url = env::var("BaseUrl");
-    let url_str = url.as_ref();
-
-    return if url_str.is_err() || url_str.unwrap().is_empty()
-    {
-        "https://api.pamaxie.com/".to_string()
-    } else
-    {
-        url.unwrap()
-    }
+pub(crate) fn get_pam_url() -> String {
+    return web_helper::get_env_variable("BaseUrl".to_string(), "https://api.pamaxie.com".to_string());
 }
 
 async fn compute_hash(bytes: &Bytes) -> std::string::String{
@@ -195,7 +126,7 @@ async fn compute_hash(bytes: &Bytes) -> std::string::String{
 async fn check_db_connection() -> bool{
     let client = reqwest::Client::new();
     let response = client
-        .get("https://api.pamaxie.com/db/v1/scan/CanConnect")
+        .get(format!("{}{}", get_pam_url(), "db/v1/scan/CanConnect"))
         .send()
         .await;
 
