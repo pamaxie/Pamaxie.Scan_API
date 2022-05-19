@@ -32,7 +32,7 @@ pub(crate) fn get_s3_url() -> String {
 }
 
 ///Stores data to the S3 account and returns the URL where it was stored
-pub async fn store_s3(imageData: &Bytes, dataHash: &String, dataExtension: &String, contentType: &String) -> String {
+pub async fn store_s3(image_data: &Bytes, data_hash: &String, data_extension: &String, content_type: &String) -> String {
     let credentials = Credentials::from_env_specific(Some("S3AccessKey"), Some("S3SecretKey"), None, None);
     let digitalOcean = Storage {
         name: get_s3_bucket(),
@@ -45,13 +45,13 @@ pub async fn store_s3(imageData: &Bytes, dataHash: &String, dataExtension: &Stri
         location_supported: false,
     };
 
-    let path = format!("{}.{}", dataHash, dataExtension);
+    let path = format!("{}.{}", data_hash, data_extension);
 
     //Store our data in the current bucket
     for backend in vec![digitalOcean] {
         // Create Bucket in REGION for BUCKET
         let bucket = Bucket::new_with_path_style(&backend.bucket, backend.region, backend.credentials).unwrap();
-        let storeData = bucket.put_object_with_content_type(&path, &imageData, &contentType).await;
+        let storeData = bucket.put_object_with_content_type(&path, &image_data, &content_type).await;
 
         if storeData.is_err(){
             eprintln!("Encountered an error during image recognition.");

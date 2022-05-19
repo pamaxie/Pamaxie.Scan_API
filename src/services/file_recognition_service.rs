@@ -16,6 +16,7 @@ use serde_json::to_string;
 use crate::helper::{data_helpers, database_helper};
 use crate::{s3_helpers, web_helper};
 use crate::helper::data_helpers::compute_hash;
+use kafka::client::KafkaClient;
 
 #[derive(Serialize)]
 pub struct ScanData{
@@ -40,8 +41,6 @@ pub async fn check_api() -> impl actix_web::Responder {
     }
 }
 
-//Runs a detection on the Binary data to determine its media content
-//and
 #[post("scan/v1/detect")]
 pub async fn detect(req: HttpRequest, body: Bytes) -> HttpResponse {
     if !web_helper::check_auth(req).await{
@@ -87,9 +86,9 @@ pub async fn detect(req: HttpRequest, body: Bytes) -> HttpResponse {
 
 #[post("scan/v1/detectImage")]
 pub async fn detect_image(req: HttpRequest, body: Bytes) -> HttpResponse {
-    //if !web_helper::check_auth(req).await{
-    //    return HttpResponse::Unauthorized().finish();
-    //}
+    /*if !web_helper::check_auth(req).await{
+        return HttpResponse::Unauthorized().finish();
+    }*/
 
     let json = serde_json::to_string(&get_image_recognition_result(&body).await);
     let response = HttpResponse::Ok().body(json.unwrap());
@@ -137,8 +136,6 @@ async fn get_image_recognition_result(image: &Bytes) -> String{
     }
 
     let data_url = s3_helpers::store_s3(image, image_hash, &data_extension, &format!("image/{}", data_extension)).await;
-
-
     return data_url.to_string();
 }
 

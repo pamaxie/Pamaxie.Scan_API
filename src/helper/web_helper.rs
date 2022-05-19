@@ -39,8 +39,8 @@ pub(crate) async fn check_auth(req_header: HttpRequest) -> bool{
 
     let auth_credential = auth.expect("").to_str();
     let client = reqwest::Client::new();
-    let baseUrl = get_pam_url().to_string();
-    let req_url = [baseUrl, "db/v1/scan/CanAuthenticate".to_string()].join("");
+    let base_url = get_pam_url().to_string();
+    let req_url = [base_url, "db/v1/scan/CanAuthenticate".to_string()].join("");
 
     let response = client
             .get(req_url)
@@ -63,7 +63,7 @@ pub async fn get_pam_token() -> (String, bool) {
             .send()
             .await;
 
-    if response.is_err(){
+    if response.is_err() {
         eprintln!("Could not authenticate with the access token. Please validate it is correct.");
         return ("".to_string(), false);
     }

@@ -50,11 +50,12 @@ fn get_refresh_token() {
                     eprintln!("We could not successfully get a token. Please ensure all environment variables are set correctly.");
                 }
 
+                std::mem::drop(lock);
             } else {
                 eprintln!("Could not lock JWT token. Retrying later.");
             }
 
-            std::mem::drop(lock);
+
 
             let runtime = start.elapsed();
             if let Some(remaining) = wait_time.checked_sub(runtime) {
@@ -84,7 +85,7 @@ async fn main() -> std::io::Result<()> {
 }
 
 fn validate_client_configuration() {
-    let mut error_data = "".to_string();
+    let mut error_data = format!("");
     let mut has_error = false;
 
     if s3_helpers::get_s3_access_key().is_empty() {
