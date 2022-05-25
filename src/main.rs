@@ -1,14 +1,7 @@
-extern crate core;
-use actix_web::{App, HttpServer, web};
-use tokio::{runtime::Runtime};
-use std::{env, thread, hash::Hasher, process::exit, string::String, time::{Duration, Instant}, sync::{Mutex, Arc}};
-use std::borrow::Borrow;
+pub use actix_web::{App, HttpServer, web};
+use std::{thread, process::exit, string::String, time::{Duration, Instant}, sync::{Mutex}};
 use crate::helper::{s3_helpers, web_helper};
-use crate::services::file_recognition_service;
 use lazy_static::lazy_static;
-
-use actix_web::web::to;
-use futures::executor;
 
 mod services {
     pub mod file_recognition_service;
@@ -26,7 +19,6 @@ lazy_static! {
 }
 
 fn get_refresh_token() {
-    tokio::runtime::Runtime::new();
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let wait_time = Duration::from_secs(3600);
@@ -73,7 +65,7 @@ fn get_refresh_token() {
 async fn main() -> std::io::Result<()> {
     validate_client_configuration();
 
-    let scheduler = thread::spawn(|| { get_refresh_token()});
+    let _scheduler = thread::spawn(|| { get_refresh_token()});
 
     HttpServer::new(|| {
         App::new().app_data(web::PayloadConfig::new(1000000 * 250))

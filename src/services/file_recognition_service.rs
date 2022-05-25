@@ -1,22 +1,10 @@
-use std::borrow::Borrow;
-use std::env;
-use std::hash::Hash;
-use std::io::empty;
 use std::os::unix::raw::time_t;
-use std::ptr::null;
-use std::time;
-use std::str;
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest, body};
-use actix_web::web::{Bytes, BytesMut};
-use reqwest::header::AUTHORIZATION;
-use s3::{Bucket, Region};
-use s3::creds::Credentials;
+use actix_web::{get, post, HttpResponse, HttpRequest};
+use actix_web::web::{Bytes};
 use serde::Serialize;
-use serde_json::to_string;
 use crate::helper::{data_helpers, database_helper};
 use crate::{s3_helpers, web_helper};
 use crate::helper::data_helpers::compute_hash;
-use kafka::client::KafkaClient;
 
 #[derive(Serialize)]
 pub struct ScanData{
@@ -85,7 +73,7 @@ pub async fn detect(req: HttpRequest, body: Bytes) -> HttpResponse {
 }
 
 #[post("scan/v1/detectImage")]
-pub async fn detect_image(req: HttpRequest, body: Bytes) -> HttpResponse {
+pub async fn detect_image(_req: HttpRequest, body: Bytes) -> HttpResponse {
     /*if !web_helper::check_auth(req).await{
         return HttpResponse::Unauthorized().finish();
     }*/
@@ -96,7 +84,7 @@ pub async fn detect_image(req: HttpRequest, body: Bytes) -> HttpResponse {
 }
 
 #[post("scan/v1/getHash")]
-pub async fn get_hash(req: HttpRequest, body: Bytes) -> HttpResponse {
+pub async fn get_hash(_req: HttpRequest, body: Bytes) -> HttpResponse {
     return HttpResponse::Ok().body(data_helpers::compute_hash(&body).await);
 }
 

@@ -1,9 +1,7 @@
 use std::env;
 use actix_web::http::header::AUTHORIZATION;
 use actix_web::HttpRequest;
-use std::sync::Mutex;
-use futures::future::err;
-use serde_json::{Result, Value};
+use serde_json::{Value};
 
 
 pub fn get_env_variable(env_var_name: String, alternate_value: String) -> String{

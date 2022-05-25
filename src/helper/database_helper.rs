@@ -1,5 +1,4 @@
-use actix_web::web::to;
-use crate::{JWT_TOKEN, web_helper};
+use crate::{JWT_TOKEN};
 use crate::web_helper::get_pam_url;
 
 ///Checks if we can connect to the database
