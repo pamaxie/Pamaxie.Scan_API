@@ -16,6 +16,7 @@ pub struct ScanData{
     ttl: time_t
 }
 
+///API endpoint, that returns if the api is up and running
 #[get("/")]
 pub async fn check_api() -> impl actix_web::Responder {
     return if database_helper::check_db_connection().await
@@ -29,6 +30,7 @@ pub async fn check_api() -> impl actix_web::Responder {
     }
 }
 
+///API endpoint, that detects the type of the data and returns the scan result, appropriate for the data type
 #[post("scan/v1/detect")]
 pub async fn detect(req: HttpRequest, body: Bytes) -> HttpResponse {
     if !web_helper::check_auth(req).await{
@@ -72,6 +74,7 @@ pub async fn detect(req: HttpRequest, body: Bytes) -> HttpResponse {
     return response;
 }
 
+///API endpoint, that scans the data, if it is an image, and returns the scan result
 #[post("scan/v1/detectImage")]
 pub async fn detect_image(_req: HttpRequest, body: Bytes) -> HttpResponse {
     /*if !web_helper::check_auth(req).await{
@@ -83,11 +86,26 @@ pub async fn detect_image(_req: HttpRequest, body: Bytes) -> HttpResponse {
     return response;
 }
 
+///API endpoint, that returns the corresponding Blake2b512 hash of the data
 #[post("scan/v1/getHash")]
 pub async fn get_hash(_req: HttpRequest, body: Bytes) -> HttpResponse {
     return HttpResponse::Ok().body(data_helpers::compute_hash(&body).await);
 }
 
+///Gets the scan result of the data, either from our database or from scanning the data via our scanning nodes
+/// # Arguments
+/// * `image` - The image to scan
+/// 
+/// # Returns
+/// * `String` - The scan result of the data
+/// 
+/// # Example
+/// ```
+/// use pamaxie_api::data_helpers::get_image_recognition_result;
+/// 
+/// let image = Bytes::from(File::open("/home/pamaxie/Desktop/test.png").unwrap());
+/// let result = get_image_recognition_result(Bytes::from(image)).await;
+/// ```
 async fn get_image_recognition_result(image: &Bytes) -> String{
     let image_hash = &compute_hash(image).await;
     let db_item = database_helper::get_scan(image_hash).await;
@@ -123,7 +141,7 @@ async fn get_image_recognition_result(image: &Bytes) -> String{
         is_compressed = false;
     }
 
-    let data_url = s3_helpers::store_s3(image, image_hash, &data_extension, &format!("image/{}", data_extension)).await;
+    let data_url = s3_helpers::store_s3(image, &data_extension, &format!("image/{}", data_extension)).await;
     return data_url.to_string();
 }
 

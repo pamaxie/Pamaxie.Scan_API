@@ -3,7 +3,18 @@ use actix_web::http::header::AUTHORIZATION;
 use actix_web::HttpRequest;
 use serde_json::{Value};
 
-
+///Returns the enviorment variable with the given name, or the alternate value if the variable is not set
+/// 
+/// # Arguments
+/// * `env_var_name` - The name of the environment variable
+/// * `alternate_value` - The alternate value to return if the variable is not set
+/// 
+/// # Example
+/// ```
+/// use pamaxie_api::web_helper::get_env_variable;
+/// 
+/// let get_env_variable_test = get_env_variable("TestEnvVar".to_string(), "DefaultValue".to_string());
+/// ```
 pub fn get_env_variable(env_var_name: String, alternate_value: String) -> String{
     let env_value = env::var(&env_var_name);
 
@@ -16,17 +27,17 @@ pub fn get_env_variable(env_var_name: String, alternate_value: String) -> String
     }
 }
 
-///Get the URL for Pamaxie's api endpoints. This is important to check and interact with the database API
+///Returns the pamaxie API URL from the environment variable
 pub fn get_pam_url() -> String {
     return get_env_variable("BaseUrl".to_string(), "https://api.pamaxie.com".to_string());
 }
 
-///Auth token that is used to interact with Pamaxie's database API. Please remember this has to be a project related token
+///Returns the pamaxie authorization token from the environment variable, to interact with the Database API
 pub fn get_pam_auth_token() -> String {
     return get_env_variable("PamAuthToken".to_string(), "".to_string());
 }
 
-//Checks if we can authenticate with the API
+//Checks if we can connect to our Database API with the set pamaxie authorization token
 pub(crate) async fn check_auth(req_header: HttpRequest) -> bool{
     let auth = req_header.head().headers.get("Authorization");
 
@@ -51,7 +62,7 @@ pub(crate) async fn check_auth(req_header: HttpRequest) -> bool{
     return response.is_success()
 }
 
-///Gets a JWT Bearer Token to connect to the database API
+///Gets a new pamaxie authorization token from the database API
 pub async fn get_pam_token() -> (String, bool) {
     eprintln!("Refreshing auth token now");
     let client = reqwest::Client::new();

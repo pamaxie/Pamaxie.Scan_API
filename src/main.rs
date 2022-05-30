@@ -18,6 +18,7 @@ lazy_static! {
     pub static ref JWT_TOKEN: Mutex<String> = Mutex::new("".to_string());
 }
 
+///Retrieves the Refresh Token from the Database API
 fn get_refresh_token() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
@@ -61,6 +62,8 @@ fn get_refresh_token() {
     });
 }
 
+
+///Starts the application
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     validate_client_configuration();
@@ -76,6 +79,7 @@ async fn main() -> std::io::Result<()> {
     }).bind(("127.0.0.1", 8080))?.run().await
 }
 
+///Validates the client configuration
 fn validate_client_configuration() {
     let mut error_data = format!("");
     let mut has_error = false;
