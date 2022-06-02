@@ -1,17 +1,18 @@
-pub use actix_web::{App, HttpServer, web};
+pub(crate) use actix_web::{App, HttpServer, web};
 use std::{thread, process::exit, string::String, time::{Duration, Instant}, sync::{Mutex}};
 use crate::helper::{s3_helpers, web_helper};
 use lazy_static::lazy_static;
 
 mod services {
     pub mod file_recognition_service;
+    pub mod worker_service;
 }
 
 mod helper {
     pub mod web_helper;
-    pub mod data_helpers;
+    pub mod misc;
     pub mod s3_helpers;
-    pub mod database_helper;
+    pub mod db_api_helper;
 }
 
 lazy_static! {
@@ -76,6 +77,7 @@ async fn main() -> std::io::Result<()> {
                 .service(services::file_recognition_service::detect)
                 .service(services::file_recognition_service::detect_image)
                 .service(services::file_recognition_service::get_hash)
+                .service(services::worker_service::get_work)
     }).bind(("127.0.0.1", 8080))?.run().await
 }
 

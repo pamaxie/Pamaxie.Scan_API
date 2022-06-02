@@ -1,7 +1,19 @@
 use std::env;
 use actix_web::http::header::AUTHORIZATION;
 use actix_web::HttpRequest;
+use jwt::{Token, Header};
+use serde::{Serialize, Deserialize};
 use serde_json::{Value};
+
+#[derive(Serialize, Deserialize)]
+pub struct PamApiTokenPayload{
+    pub issuer: String,
+    pub audience: String,
+    pub owner: i64,
+    pub is_api_token: bool,
+    pub api_token_machine_guid: String,
+    pub project_id: i64
+}
 
 ///Returns the enviorment variable with the given name, or the alternate value if the variable is not set
 /// 
@@ -38,8 +50,8 @@ pub fn get_pam_auth_token() -> String {
 }
 
 //Checks if we can connect to our Database API with the set pamaxie authorization token
-pub(crate) async fn check_auth(req_header: HttpRequest) -> bool{
-    let auth = req_header.head().headers.get("Authorization");
+pub(crate) async fn check_auth(req: &HttpRequest) -> bool{
+    let auth = req.head().headers.get("Authorization");
 
     if auth.is_none()
     {
@@ -59,7 +71,67 @@ pub(crate) async fn check_auth(req_header: HttpRequest) -> bool{
 
     let response = response.unwrap().status();
 
+    if response == 401 {
+        return false;
+    }
+
     return response.is_success()
+}
+
+//Checks if the authentication is issued via Pamaxie's internal tokens / projects
+pub(crate) async fn is_internal_auth(req: &HttpRequest) -> bool{
+    let auth = req.head().headers.get("Authorization");
+
+    if auth.is_none()
+    {
+        return false;
+    }
+
+    let auth_credential = auth.expect("").to_str();
+    let client = reqwest::Client::new();
+    let base_url = get_pam_url().to_string();
+    let req_url = [base_url, "db/v1/scan/IsInternalToken".to_string()].join("");
+
+    let response = client
+            .get(req_url)
+            .header(AUTHORIZATION, auth_credential.expect("").to_string())
+            .send()
+            .await;
+
+    let response = response.unwrap().status();
+
+    if response == 401 {
+        return false;
+    }
+
+    return response.is_success()
+}
+
+///Gets the payload from JWT bearer's token 
+pub(crate) fn get_scan_token_payload(req: &HttpRequest) -> std::option::Option<PamApiTokenPayload>{
+    let auth = req.head().headers.get("Authorization");
+
+    if auth.is_none()
+    {
+        return None;
+    }
+
+    
+
+    let auth_credential = String::from(auth.unwrap().to_str().unwrap());
+
+    let unverified: Token<Header, PamApiTokenPayload, _> = Token::parse_unverified(auth_credential.as_ref()).expect("We were unable to pase a reached in JWT token");
+    
+    let payload = PamApiTokenPayload{
+        issuer: String::from(&unverified.claims().issuer),
+        audience: String::from(&unverified.claims().audience),
+        owner: unverified.claims().owner,
+        is_api_token: false,
+        api_token_machine_guid: String::from(&unverified.claims().api_token_machine_guid),
+        project_id: unverified.claims().project_id
+    };
+
+    return Some(payload);
 }
 
 ///Gets a new pamaxie authorization token from the database API

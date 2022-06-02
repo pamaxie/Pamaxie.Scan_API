@@ -3,7 +3,7 @@ use s3::creds::Credentials;
 use s3::{Bucket, Region};
 use crate::web_helper::get_env_variable;
 
-use super::data_helpers;
+use super::misc;
 
 ///Stores the S3 connection information
 struct Storage {
@@ -81,7 +81,7 @@ pub async fn store_s3(data: &Bytes, data_extension: &String, content_type: &Stri
         bucket: get_s3_bucket()
     };
 
-    let data_hash = data_helpers::compute_hash(data);
+    let data_hash = misc::compute_hash(data);
     let path = format!("{}.{}", data_hash.await, data_extension);
 
     //Store our data in the current bucket
