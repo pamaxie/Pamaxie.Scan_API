@@ -1,24 +1,15 @@
 use actix_web::{get, post, HttpResponse, HttpRequest};
-use actix_web::web::{Bytes};
-use serde::{Serialize, Deserialize};
 use crate::helper::db_api_helper;
 use crate::web_helper;
-
-use super::file_recognition_service::{self, ScanData};
+use super::file_recognition_service;
+use serde_json::{Value, json};
 
 ///Queue data that is used to store our current work that still needs to be processed
+#[allow(non_snake_case)]
 pub struct WorkQueueData{
-    pub scan_url: String,
-    pub content_type: String,
-    pub in_work: bool
-} 
-
-#[derive(Serialize, Deserialize)]
-pub struct ScanResultData{
-    pub(crate) key: String,
-    pub(crate) is_user_scan: bool,
-    pub(crate) scan_result: String,
-    pub(crate) scan_url: String
+    pub ScanUrl: String,
+    pub DataType: String,
+    pub DataExtension: String
 }
 
 ///API endpoint, that returns work if there is some available
@@ -43,7 +34,7 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
 
 ///API endpoint, that accepts finished work once you're done with it
 #[post("worker/v1/work")]
-pub async fn post_work(req: HttpRequest, body: Bytes) -> HttpResponse {
+pub async fn post_work(req: HttpRequest, body: String) -> HttpResponse {
     //Check if this request is authorized to access this API
     if !web_helper::check_auth(&req).await{
         return HttpResponse::Unauthorized().finish();
@@ -70,25 +61,21 @@ pub async fn post_work(req: HttpRequest, body: Bytes) -> HttpResponse {
         return HttpResponse::BadRequest().body("No body found in request");
     }
 
-    let scan_result: ScanResultData = serde_json::from_slice(&body).unwrap();
-    
+    let mut result: Value = serde_json::from_str(&body).unwrap();
+
     //Check if the data is valid
-    if (scan_result.key == "") || (scan_result.scan_result == "") || (scan_result.scan_url == ""){
+    if (result["Key"] == "") || (result["ScanResult"] == "") || (result["DataType"] == "") || (result["DataExtension"] == "") {
         return HttpResponse::BadRequest().body("Invalid data found in request");
     }
 
-    //Create Scan Data
-    let scan_data = file_recognition_service::ScanData{
-        key: scan_result.key,
-        is_user_scan: is_pam_scan,
-        scan_result: scan_result.scan_result,
-        data_type: "".to_string(),
-        scan_machine_guid: jwt_payload.unwrap().api_token_machine_guid,
-        ttl: std::time::Duration::from_millis(0),
-    };
+    //Set values that could've been maliciously modified by the client
+    result["IsUserScan"] = json!(is_pam_scan);
+    result["ScanMachineGuid"] = json!(jwt_payload.as_ref().unwrap().apiTokenMachineGuid);
 
     //Save the scan data to our API
-    let storage_result = db_api_helper::set_scan(&scan_data).await;
+    let storage_result = db_api_helper::set_scan(&serde_json::to_string(&result).unwrap().to_string()).await;
+
+    //Publish the result on AWS SQS
     
     if storage_result{
         return HttpResponse::Ok().body("Data has been accepted and stored into our API".to_string());
@@ -97,16 +84,16 @@ pub async fn post_work(req: HttpRequest, body: Bytes) -> HttpResponse {
     }
 }
 
-pub async fn add_work(scan_url: &String, content_type: &String) -> bool {
+pub async fn add_work(scan_url: &String, data_type: &String, data_extension: &String) -> bool {
     let new_work_data = WorkQueueData{
-        scan_url: scan_url.to_string(),
-        content_type: content_type.to_string(),
-        in_work: false
+        ScanUrl: scan_url.to_string(),
+        DataType: data_type.to_string(),
+        DataExtension: data_extension.to_string()
     };
 
-    //Store data in SQLite work queue
+    //Store the Data in Amazon SQS
 
-    //Add the new work to our queue
+
     return true;
 }
 
@@ -117,12 +104,13 @@ pub async fn get_work_result(item_hash: &String) -> file_recognition_service::Sc
 
         //Create Scan Data
         let scan_data = file_recognition_service::ScanData{
-            key: "".to_string(),
-            is_user_scan: false,
-            scan_result: "".to_string(),
-            data_type: "".to_string(),
-            scan_machine_guid: "".to_string(),
-            ttl: std::time::Duration::from_millis(0),
+            Key: "".to_string(),
+            IsUserScan: false,
+            ScanResult: "".to_string(),
+            DataType: "".to_string(),
+            DataExtension: "".to_string(),
+            ScanMachineGuid: "".to_string(),
+            TTL: std::time::Duration::from_millis(0),
         };
     }
 }

@@ -1,4 +1,3 @@
-#[allow(deprecated)]
 use actix_web::{get, post, HttpResponse, HttpRequest};
 use actix_web::web::Bytes;
 use serde::{Serialize, Deserialize};
@@ -9,13 +8,15 @@ use crate::helper::misc::compute_hash;
 use super::worker_service;
 
 #[derive(Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct ScanData{
-    pub key: String,
-    pub data_type: String,
-    pub scan_machine_guid: String,
-    pub is_user_scan: bool,
-    pub scan_result: String,
-    pub ttl: std::time::Duration
+    pub Key: String,
+    pub DataType: String,
+    pub DataExtension: String,
+    pub ScanMachineGuid: String,
+    pub IsUserScan: bool,
+    pub ScanResult: String,
+    pub TTL: std::time::Duration
 }
 
 ///API endpoint, that returns if the api is up and running
@@ -64,12 +65,13 @@ pub async fn detect(req: HttpRequest, body: Bytes) -> HttpResponse {
     }
 
     let unknown_result = ScanData {
-        key: misc::compute_hash(&body).await,
-        data_type: String::from("Unknown"),
-        scan_machine_guid: String::from(""),
-        scan_result: String::from("Please attempt again by using a specific scanning endpoint."),
-        is_user_scan: false,
-        ttl: std::time::Duration::from_secs(0)
+        Key: misc::compute_hash(&body).await,
+        DataType: String::from("Unknown"),
+        DataExtension: String::from("Unknown"),
+        ScanMachineGuid: String::from(""),
+        ScanResult: String::from("Please attempt again by using a specific scanning endpoint."),
+        IsUserScan: false,
+        TTL: std::time::Duration::from_secs(0)
     };
     let json = serde_json::to_string(&unknown_result);
     let response = HttpResponse::Ok().body(json.unwrap());
@@ -140,7 +142,7 @@ async fn get_image_recognition_result(image: &Bytes) -> String{
 
     let data_url = s3_helpers::store_s3(image, &data_extension, &format!("image/{}", data_extension)).await;
     
-    worker_service::add_work(&data_url, &data_extension).await;
+    worker_service::add_work(&data_url, &data_extension, &String::from("image")).await;
     let result = worker_service::get_work_result(&image_hash).await;
 
     return serde_json::to_string(&result).unwrap();

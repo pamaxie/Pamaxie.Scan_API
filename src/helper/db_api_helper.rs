@@ -1,10 +1,5 @@
 use std::time::Duration;
-
-use actix_web::rt::task;
-use reqwest::Client;
-
-use crate::services::file_recognition_service::ScanData;
-use crate::{JWT_TOKEN};
+use crate::JWT_TOKEN;
 use crate::web_helper::get_pam_url;
 
 ///Checks if we can connect to our Database API
@@ -94,8 +89,7 @@ pub(crate) async fn get_scan(hash: &String) -> (String, bool){
 /// };
 /// let scan = set_scan(scan_data);
 /// ```
-#[allow(unreachable_code)]
-pub(crate) async fn set_scan(scan_data: &ScanData) -> bool{
+pub(crate) async fn set_scan(scan_data: &String) -> bool{
     //Take 10 rounds to attempt to release the mutex lock
     let range = std::ops::Range {start: 0, end: 10};
     for _n in range {
@@ -106,28 +100,35 @@ pub(crate) async fn set_scan(scan_data: &ScanData) -> bool{
             let token = mutex.as_str();
     
     
+            eprintln!("{}", scan_data);
             let response = client
                     .post(format!("{}{}", get_pam_url(), "/db/v1/scan/update"))
                     .header("Authorization", format!("Bearer {}", token))
-                    .body(serde_json::to_string(&scan_data).unwrap())
+                    .body(scan_data.to_string())
                     .send()
                     .await;
     
             if response.is_err() {
-                eprintln!("Could not authenticate with JWT bearer token. This should normally not happen.");
-    
+                eprintln!("Could not communicate with API, this could be because of several issues, like an invalid Auth token.");
+                std::mem::drop(lock);
+                return false;
+            }
+
+            if response.as_ref().unwrap().status() == 401{
+                eprintln!("We could not connect and authenticate with the API via the provided Auth Token");
                 std::mem::drop(lock);
                 return false;
             }
     
-            //There was probably some error authorizing with the API
-            if !response.as_ref().unwrap().status().is_success(){
-                return false;
+            //No errors found, so the data was stored successfully
+            if response.as_ref().unwrap().status().is_success(){
+                std::mem::drop(lock);
+                return true;
             }
     
-            //Release the lock from the mutex and return that we could store our data
+            //Release the lock from the mutex and return that we could not store our data
             std::mem::drop(lock);
-            return true;
+            return false;
         }else{
             eprintln!("Try_lock failed. Reattempting soon.");
             std::thread::sleep(Duration::from_millis(100));

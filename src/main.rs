@@ -78,6 +78,7 @@ async fn main() -> std::io::Result<()> {
                 .service(services::file_recognition_service::detect_image)
                 .service(services::file_recognition_service::get_hash)
                 .service(services::worker_service::get_work)
+                .service(services::worker_service::post_work)
     }).bind(("127.0.0.1", 8080))?.run().await
 }
 

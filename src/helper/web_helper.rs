@@ -6,13 +6,16 @@ use serde::{Serialize, Deserialize};
 use serde_json::{Value};
 
 #[derive(Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct PamApiTokenPayload{
-    pub issuer: String,
-    pub audience: String,
-    pub owner: i64,
-    pub is_api_token: bool,
-    pub api_token_machine_guid: String,
-    pub project_id: i64
+    pub ownerId: i64,
+    pub isApiToken: bool,
+    pub apiTokenMachineGuid: String,
+    pub projectId: i64,
+    pub nbf: i32,
+    pub exp: i32,
+    pub iat: i32,
+    pub iss: String,
 }
 
 ///Returns the enviorment variable with the given name, or the alternate value if the variable is not set
@@ -57,25 +60,21 @@ pub(crate) async fn check_auth(req: &HttpRequest) -> bool{
     {
         return false;
     }
-
-    let auth_credential = auth.expect("").to_str();
+    
     let client = reqwest::Client::new();
-    let base_url = get_pam_url().to_string();
-    let req_url = [base_url, "db/v1/scan/CanAuthenticate".to_string()].join("");
-
     let response = client
-            .get(req_url)
-            .header(AUTHORIZATION, auth_credential.expect("").to_string())
+            .get([get_pam_url(), "/db/v1/scan/CanAuthenticate".to_string()].join(""))
+            .header(AUTHORIZATION, auth.unwrap().to_str().unwrap().to_string())
             .send()
             .await;
 
-    let response = response.unwrap().status();
-
-    if response == 401 {
+    if response.is_err(){
         return false;
     }
 
-    return response.is_success()
+    let status = response.as_ref().unwrap().status();
+
+    return status.is_success();
 }
 
 //Checks if the authentication is issued via Pamaxie's internal tokens / projects
@@ -87,24 +86,18 @@ pub(crate) async fn is_internal_auth(req: &HttpRequest) -> bool{
         return false;
     }
 
-    let auth_credential = auth.expect("").to_str();
     let client = reqwest::Client::new();
-    let base_url = get_pam_url().to_string();
-    let req_url = [base_url, "db/v1/scan/IsInternalToken".to_string()].join("");
-
     let response = client
-            .get(req_url)
-            .header(AUTHORIZATION, auth_credential.expect("").to_string())
+            .get([get_pam_url(), "/db/v1/scan/IsInternalToken".to_string()].join(""))
+            .header(AUTHORIZATION, auth.unwrap().to_str().unwrap().to_string())
             .send()
             .await;
 
-    let response = response.unwrap().status();
-
-    if response == 401 {
+    if response.is_err(){
         return false;
     }
 
-    return response.is_success()
+    return response.as_ref().unwrap().status().is_success();
 }
 
 ///Gets the payload from JWT bearer's token 
@@ -116,19 +109,19 @@ pub(crate) fn get_scan_token_payload(req: &HttpRequest) -> std::option::Option<P
         return None;
     }
 
-    
-
-    let auth_credential = String::from(auth.unwrap().to_str().unwrap());
+    let auth_credential = String::from(auth.unwrap().to_str().unwrap().strip_prefix("Bearer ").unwrap());
 
     let unverified: Token<Header, PamApiTokenPayload, _> = Token::parse_unverified(auth_credential.as_ref()).expect("We were unable to pase a reached in JWT token");
     
     let payload = PamApiTokenPayload{
-        issuer: String::from(&unverified.claims().issuer),
-        audience: String::from(&unverified.claims().audience),
-        owner: unverified.claims().owner,
-        is_api_token: false,
-        api_token_machine_guid: String::from(&unverified.claims().api_token_machine_guid),
-        project_id: unverified.claims().project_id
+        ownerId: unverified.claims().ownerId,
+        isApiToken: false,
+        apiTokenMachineGuid: String::from(&unverified.claims().apiTokenMachineGuid),
+        projectId: unverified.claims().projectId,
+        nbf: unverified.claims().nbf,
+        exp: unverified.claims().exp,
+        iat: unverified.claims().iat,
+        iss: String::from(&unverified.claims().iss),
     };
 
     return Some(payload);
@@ -150,8 +143,13 @@ pub async fn get_pam_token() -> (String, bool) {
     }
 
     let response_body = response.unwrap().text().await;
-    let json_val: Value = serde_json::from_str(response_body.unwrap().as_str()).unwrap();
-    let json_token = &json_val["Token"]["Token"].as_str();
 
+    //empty response body
+    if response_body.as_ref().unwrap().is_empty(){
+        return ("".to_string(), false);
+    }
+
+    let json_val: Value = serde_json::from_str(response_body.as_ref().unwrap().as_str()).unwrap();
+    let json_token = &json_val["Token"]["Token"].as_str();
     return (json_token.unwrap().to_string(), true);
 }

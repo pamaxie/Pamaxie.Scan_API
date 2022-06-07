@@ -12,28 +12,21 @@ struct Storage {
     bucket: String
 }
 
-//Constants for S3 Storage
-///Environment variable for S3 Secret Access Key
-const S3_ACCESS_KEY_VARIABLE: &str = "S3SecretAccessKey";
-
-///Environment variable for S3 Secret Key
-const S3_SECRET_KEY_VARIABLE: &str = "S3SecretKey";
-
-///Returns the S3 Storage Access Key
+///Returns the S3 Access Key ID
 /// # Example
 /// ```
 /// use s3_helpers::get_s3_access_key;
 /// let access_key = get_s3_access_key();
 /// ```
-pub(crate) fn get_s3_access_key() -> String { return get_env_variable(S3_ACCESS_KEY_VARIABLE.to_string(), "".to_string()); }
+pub(crate) fn get_s3_access_key() -> String { return get_env_variable("S3AccessKeyId".to_string(), "".to_string()); }
 
-///Returns the S3 Storage Secret Key
+///Returns the S3 Secret Access Key
 /// # Example
 /// ```
 /// use s3_helpers::get_s3_access_key;
 /// let access_key = get_s3_access_key();
 /// ```
-pub(crate) fn get_s3_secret_key() -> String { return get_env_variable(S3_SECRET_KEY_VARIABLE.to_string(), "".to_string()); }
+pub(crate) fn get_s3_secret_key() -> String { return get_env_variable("S3AccessKey".to_string(), "".to_string()); }
 
 ///Returns the S3 Storage Bucket
 /// # Example
@@ -71,7 +64,7 @@ pub(crate) fn get_s3_url() -> String {
 /// store_s3_data(data, data_extension, content_type).await;
 /// ```
 pub async fn store_s3(data: &Bytes, data_extension: &String, content_type: &String) -> String {
-    let credentials = Credentials::from_env_specific(Some("S3AccessKey"), Some("S3SecretKey"), None, None);
+    let credentials = Credentials::from_env_specific(Some("S3AccessKeyId"), Some("S3AccessKey"), None, None);
     let digital_ocean = Storage {
         region: Region::Custom {
             region: "".into(),
