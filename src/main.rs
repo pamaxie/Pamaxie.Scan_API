@@ -1,4 +1,5 @@
 pub(crate) use actix_web::{App, HttpServer, web};
+use helper::sqs_helpers;
 use std::{thread, process::exit, string::String, time::{Duration, Instant}, sync::{Mutex}};
 use crate::helper::{s3_helpers, web_helper};
 use lazy_static::lazy_static;
@@ -13,6 +14,7 @@ mod helper {
     pub mod misc;
     pub mod s3_helpers;
     pub mod db_api_helper;
+    pub mod sqs_helpers;
 }
 
 lazy_static! {
@@ -37,8 +39,8 @@ fn get_refresh_token() {
             if let Ok(ref mut mutex) = lock {
                 let token = web_helper::get_pam_token().await;
 
-                if token.1 {
-                    mutex.push_str(token.0.as_str());
+                if token.is_some() {
+                    mutex.push_str(token.unwrap().as_str());
                     eprintln!("JWT was {}. \rWe successfully set it to the global value.", mutex.to_string());
                 }else{
                     eprintln!("We could not successfully get a token. Please ensure all environment variables are set correctly.");
@@ -63,12 +65,10 @@ fn get_refresh_token() {
     });
 }
 
-
 ///Starts the application
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     validate_client_configuration();
-
     let _scheduler = thread::spawn(|| { get_refresh_token()});
 
     HttpServer::new(|| {
@@ -114,6 +114,30 @@ fn validate_client_configuration() {
     if web_helper::get_pam_url().is_empty() {
         has_error = true;
         error_data = format!("{}The API base URL is empty. It is required to be set, to interact, test and authorize with our database. \
+        Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
+    }
+
+    if sqs_helpers::get_aws_access_key().is_empty() {
+        has_error = true;
+        error_data = format!("{}The AWS_ACCESS_KEY_ID is empty. It is required to be set, to interact with AWS SQS. 
+        Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
+    }
+
+    if sqs_helpers::get_aws_secret_access_key().is_empty() {
+        has_error = true;
+        error_data = format!("{}The AWS_SECRET_ACCESS_KEY is empty. It is required to be set, to interact with AWS SQS. 
+        Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
+    }
+
+    if sqs_helpers::get_aws_sqs_queue_url().is_empty() {
+        has_error = true;
+        error_data = format!("{}The AWS_SQS_QUEUE_URL_0 is empty. It is required to be set, to interact with AWS SQS. 
+        Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
+    }
+
+    if sqs_helpers::get_aws_default_region().is_empty() {
+        has_error = true;
+        error_data = format!("{}The AWS_DEFAULT_REGION is empty. It is required to be set, to interact with AWS SQS. 
         Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
     }
 

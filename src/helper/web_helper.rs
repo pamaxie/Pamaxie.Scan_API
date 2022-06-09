@@ -1,9 +1,9 @@
-use std::env;
 use actix_web::http::header::AUTHORIZATION;
 use actix_web::HttpRequest;
 use jwt::{Token, Header};
 use serde::{Serialize, Deserialize};
 use serde_json::{Value};
+use super::misc::get_env_variable;
 
 #[derive(Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -16,30 +16,6 @@ pub struct PamApiTokenPayload{
     pub exp: i32,
     pub iat: i32,
     pub iss: String,
-}
-
-///Returns the enviorment variable with the given name, or the alternate value if the variable is not set
-/// 
-/// # Arguments
-/// * `env_var_name` - The name of the environment variable
-/// * `alternate_value` - The alternate value to return if the variable is not set
-/// 
-/// # Example
-/// ```
-/// use pamaxie_api::web_helper::get_env_variable;
-/// 
-/// let get_env_variable_test = get_env_variable("TestEnvVar".to_string(), "DefaultValue".to_string());
-/// ```
-pub fn get_env_variable(env_var_name: String, alternate_value: String) -> String{
-    let env_value = env::var(&env_var_name);
-
-    return if env_value.is_err() || env_value.as_ref().unwrap().is_empty()
-    {
-        alternate_value
-    } else
-    {
-        env_value.unwrap()
-    }
 }
 
 ///Returns the pamaxie API URL from the environment variable
@@ -128,7 +104,7 @@ pub(crate) fn get_scan_token_payload(req: &HttpRequest) -> std::option::Option<P
 }
 
 ///Gets a new pamaxie authorization token from the database API
-pub async fn get_pam_token() -> (String, bool) {
+pub async fn get_pam_token() -> Option<String> {
     eprintln!("Refreshing auth token now");
     let client = reqwest::Client::new();
     let response = client
@@ -139,17 +115,17 @@ pub async fn get_pam_token() -> (String, bool) {
 
     if response.is_err() {
         eprintln!("Could not authenticate with the access token. Please validate it is correct.");
-        return ("".to_string(), false);
+        return None;
     }
 
     let response_body = response.unwrap().text().await;
 
     //empty response body
     if response_body.as_ref().unwrap().is_empty(){
-        return ("".to_string(), false);
+        return None;
     }
 
     let json_val: Value = serde_json::from_str(response_body.as_ref().unwrap().as_str()).unwrap();
     let json_token = &json_val["Token"]["Token"].as_str();
-    return (json_token.unwrap().to_string(), true);
+    return Some(json_token.unwrap().to_string());
 }

@@ -1,25 +1,18 @@
 use actix_web::{get, post, HttpResponse, HttpRequest};
 use actix_web::web::Bytes;
-use serde::{Serialize, Deserialize};
 use crate::helper::{misc, db_api_helper};
 use crate::{s3_helpers, web_helper};
 use crate::helper::misc::compute_hash;
 
-use super::worker_service;
+use super::worker_service::{self};
 
-#[derive(Serialize, Deserialize)]
-#[allow(non_snake_case)]
-pub struct ScanData{
-    pub Key: String,
-    pub DataType: String,
-    pub DataExtension: String,
-    pub ScanMachineGuid: String,
-    pub IsUserScan: bool,
-    pub ScanResult: String,
-    pub TTL: std::time::Duration
-}
-
-///API endpoint, that returns if the api is up and running
+///Returns if our API is operable or not
+/// 
+/// # Arguments
+/// None
+/// 
+/// # Returns
+/// Responder - The response object
 #[get("/")]
 pub async fn check_api() -> impl actix_web::Responder {
     return if db_api_helper::check_db_connection().await
@@ -34,6 +27,13 @@ pub async fn check_api() -> impl actix_web::Responder {
 }
 
 ///API endpoint, that detects the type of the data and returns the scan result, appropriate for the data type
+/// 
+/// # Arguments
+/// req: HttpRequest - The request object
+/// body: Bytes - The body of the request
+/// 
+/// # Returns
+/// HttpResponse - The response object
 #[post("scan/v1/detect")]
 pub async fn detect(req: HttpRequest, body: Bytes) -> HttpResponse {
     if !web_helper::check_auth(&req).await{
@@ -64,33 +64,43 @@ pub async fn detect(req: HttpRequest, body: Bytes) -> HttpResponse {
         return HttpResponse::from(HttpResponse::NotImplemented().body("We do not support this media type yet."));
     }
 
-    let unknown_result = ScanData {
-        Key: misc::compute_hash(&body).await,
-        DataType: String::from("Unknown"),
-        DataExtension: String::from("Unknown"),
-        ScanMachineGuid: String::from(""),
-        ScanResult: String::from("Please attempt again by using a specific scanning endpoint."),
-        IsUserScan: false,
-        TTL: std::time::Duration::from_secs(0)
-    };
-    let json = serde_json::to_string(&unknown_result);
+    let json = serde_json::to_string("Incorrect Result");
     let response = HttpResponse::Ok().body(json.unwrap());
     return response;
 }
 
 ///API endpoint, that scans the data, if it is an image, and returns the scan result
+/// 
+/// # Arguments
+/// req: HttpRequest - The request object
+/// body: Bytes - The body of the request
+/// 
+/// # Returns
+/// HttpResponse - The response object
 #[post("scan/v1/detectImage")]
-pub async fn detect_image(_req: HttpRequest, body: Bytes) -> HttpResponse {
-    /*if !web_helper::check_auth(req).await{
+pub async fn detect_image(req: HttpRequest, body: Bytes) -> HttpResponse {
+    if !web_helper::check_auth(&req).await{
         return HttpResponse::Unauthorized().finish();
-    }*/
+    }
 
-    let json = serde_json::to_string(&get_image_recognition_result(&body).await);
-    let response = HttpResponse::Ok().body(json.unwrap());
-    return response;
+    let result = get_image_recognition_result(&body).await;
+
+    if result.is_none(){
+        return HttpResponse::Ok().body("We are taking a longer time to process your request. Please try again later.");
+    }
+    else{
+        return HttpResponse::Ok().body(result.unwrap());
+    }
 }
 
 ///API endpoint, that returns the corresponding Blake2b512 hash of the data
+/// 
+/// # Arguments
+/// req: HttpRequest - The request object
+/// body: Bytes - The body of the request
+/// 
+/// # Returns
+/// HttpResponse - The response object
 #[post("scan/v1/getHash")]
 pub async fn get_hash(_req: HttpRequest, body: Bytes) -> HttpResponse {
     return HttpResponse::Ok().body(misc::compute_hash(&body).await);
@@ -110,15 +120,22 @@ pub async fn get_hash(_req: HttpRequest, body: Bytes) -> HttpResponse {
 /// let image = Bytes::from(File::open("/home/pamaxie/Desktop/test.png").unwrap());
 /// let result = get_image_recognition_result(Bytes::from(image)).await;
 /// ```
-async fn get_image_recognition_result(image: &Bytes) -> String{
+async fn get_image_recognition_result(image: &Bytes) -> Option<String>{
     
     let image_hash = &compute_hash(image).await;
     let db_item = db_api_helper::get_scan(image_hash).await;
 
-    //Check if we could find an item in our database. If yes just return that.
-    // TODO: Check if the version of the neural networks to see if one is outdated and possibly which neural network is outdated. And rescan these items.
-    if db_item.1{
-        return db_item.0.to_string();
+    //Check if we could find an item in our database.
+    if db_item.is_some(){
+
+        let db_item = db_item.unwrap();
+        let db_item_json = misc::get_json_value(&db_item);
+
+        //Check our db item is valid json, otherwise we just rescan the item.
+        if db_item_json.is_some() {
+            //TODO: Add check where we poll our Github to check if new neural network version is available and to see which one this one was scanned on.
+            return Some(db_item.to_string());
+        }
     }
 
     let data_extension: String;
@@ -141,9 +158,23 @@ async fn get_image_recognition_result(image: &Bytes) -> String{
     }
 
     let data_url = s3_helpers::store_s3(image, &data_extension, &format!("image/{}", data_extension)).await;
+
+    if data_url.is_none(){
+        return None;
+    }
     
-    worker_service::add_work(&data_url, &data_extension, &String::from("image")).await;
+    //Attempt to add our work to the queue if not exit here.
+    if !worker_service::add_work(&image_hash, &data_url.unwrap(), &data_extension, &String::from("image")).await {
+        return None;
+    }
+
+
     let result = worker_service::get_work_result(&image_hash).await;
 
-    return serde_json::to_string(&result).unwrap();
+    //We could not poll a result in a timely manner this means we likely timed out.
+    if result.is_none(){
+        return None;
+    }
+
+    return Some(result.unwrap());
 }

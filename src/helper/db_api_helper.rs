@@ -1,4 +1,6 @@
+use std::thread;
 use std::time::Duration;
+
 use crate::JWT_TOKEN;
 use crate::web_helper::get_pam_url;
 
@@ -36,40 +38,48 @@ pub(crate) async fn check_db_connection() -> bool{
 /// 
 /// let scan = get_scan("hash");
 /// ```
-pub(crate) async fn get_scan(hash: &String) -> (String, bool){
-    let mut lock = JWT_TOKEN.try_lock();
-    return if let Ok(ref mut mutex) = lock {
-        let client = reqwest::Client::new();
-        let token = mutex.as_str();
-        let response = client
-                .get(format!("{}{}", get_pam_url(), format!("/db/v1/scan/get={}", hash)))
-                .header("Authorization", format!("Bearer {}", token))
-                .send()
-                .await;
+pub(crate) async fn get_scan(hash: &String) -> Option<String>{
+    //Take 100 attempts to get the lock. might fail multiple times since this method is polled quite a lot.
+    let x = std::ops::Range {start: 0, end: 100};
 
-        if response.is_err() {
-            eprintln!("Could not authenticate with JWT bearer token. This should normally not happen.");
+    for _i in x{
+        let mut lock = JWT_TOKEN.try_lock();
 
+
+        if let Ok(ref mut mutex) = lock {
+            let client = reqwest::Client::new();
+            let token = mutex.as_str();
+            let response = client
+                    .get(format!("{}{}", get_pam_url(), format!("/db/v1/scan/get={}", hash)))
+                    .header("Authorization", format!("Bearer {}", token))
+                    .send()
+                    .await;
+    
+            if response.is_err() {
+                eprintln!("Could not authenticate with JWT bearer token. This should normally not happen.");
+    
+                std::mem::drop(lock);
+                return None;
+            }
+    
+            //Item could probably not be found.
+            if !response.as_ref().unwrap().status().is_success(){
+                return None;
+            }
+    
+            let response_body = response.unwrap().text().await;
+    
+    
+    
             std::mem::drop(lock);
-            return ("".to_string(), false);
-        }
-
-        //Item could probably not be found.
-        if !response.as_ref().unwrap().status().is_success(){
-            return ("".to_string(), false);
-        }
-
-        let response_body = response.unwrap().text().await;
-
-
-
-        std::mem::drop(lock);
-        (response_body.unwrap(), true)
-    } else {
-        eprintln!("Try_lock failed. Returning empty.");
-
-        ("".to_string(), false)
+            return Some(response_body.unwrap());
+        } else {
+            thread::sleep(Duration::from_millis(15));
+            continue;
+        };
     }
+
+    return None;
 }
 
 ///Sets the scan result and data in the database
@@ -90,8 +100,9 @@ pub(crate) async fn get_scan(hash: &String) -> (String, bool){
 /// let scan = set_scan(scan_data);
 /// ```
 pub(crate) async fn set_scan(scan_data: &String) -> bool{
-    //Take 10 rounds to attempt to release the mutex lock
-    let range = std::ops::Range {start: 0, end: 10};
+    //Take 100 attempts to set the lock.
+    let range = std::ops::Range {start: 0, end: 100};
+
     for _n in range {
         let mut lock = JWT_TOKEN.try_lock();
 
@@ -130,10 +141,10 @@ pub(crate) async fn set_scan(scan_data: &String) -> bool{
             std::mem::drop(lock);
             return false;
         }else{
-            eprintln!("Try_lock failed. Reattempting soon.");
-            std::thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(15));
             continue;
         }
     }
+    
     return false;
 }

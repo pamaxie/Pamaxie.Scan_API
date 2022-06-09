@@ -1,7 +1,7 @@
 use actix_web::web::Bytes;
 use s3::creds::Credentials;
 use s3::{Bucket, Region};
-use crate::web_helper::get_env_variable;
+use crate::helper::misc::get_env_variable;
 
 use super::misc;
 
@@ -13,44 +13,24 @@ struct Storage {
 }
 
 ///Returns the S3 Access Key ID
-/// # Example
-/// ```
-/// use s3_helpers::get_s3_access_key;
-/// let access_key = get_s3_access_key();
-/// ```
 pub(crate) fn get_s3_access_key() -> String { return get_env_variable("S3AccessKeyId".to_string(), "".to_string()); }
 
 ///Returns the S3 Secret Access Key
-/// # Example
-/// ```
-/// use s3_helpers::get_s3_access_key;
-/// let access_key = get_s3_access_key();
-/// ```
 pub(crate) fn get_s3_secret_key() -> String { return get_env_variable("S3AccessKey".to_string(), "".to_string()); }
 
 ///Returns the S3 Storage Bucket
-/// # Example
-/// ```
-/// use s3_helpers::get_s3_access_key;
-/// let access_key = get_s3_access_key();
-/// ```
 pub(crate) fn get_s3_bucket() -> String { return get_env_variable("S3Bucket".to_string(), "pam-dev".to_string()); }
 
 ///Returns the S3 Storage URL
-/// # Example
-/// ```
-/// use s3_helpers::get_s3_access_key;
-/// let access_key = get_s3_access_key();
-/// ```
 pub(crate) fn get_s3_url() -> String {
     return get_env_variable("S3Url".to_string(), "sfo3.digitaloceanspaces.com".to_string());
 }
 
 ///Stores a piece of data in the S3 Storage bucket, and returns the URL to the data
 /// # Arguments
-/// * `data` - The data to store in the S3 bucket
-/// * `data_extension` - The file extension of the data to store
-/// * `content_type` - The content type of the data to store
+/// data: &Bytes - The data to store in the S3 bucket
+/// data_extension: &String - The file extension of the data to store
+/// content_type: &String - The content type of the data to store
 /// 
 /// # Returns
 /// the URL of the data stored in the S3 bucket
@@ -63,7 +43,7 @@ pub(crate) fn get_s3_url() -> String {
 /// let content_type = "text/plain";
 /// store_s3_data(data, data_extension, content_type).await;
 /// ```
-pub async fn store_s3(data: &Bytes, data_extension: &String, content_type: &String) -> String {
+pub async fn store_s3(data: &Bytes, data_extension: &String, content_type: &String) -> Option<String> {
     let credentials = Credentials::from_env_specific(Some("S3AccessKeyId"), Some("S3AccessKey"), None, None);
     let digital_ocean = Storage {
         region: Region::Custom {
@@ -85,9 +65,9 @@ pub async fn store_s3(data: &Bytes, data_extension: &String, content_type: &Stri
 
         if store_data.is_err(){
             eprintln!("Encountered an error during image recognition.");
-            return "".to_string();
+            return None;
         }
     }
 
-    return format!("https://{}.{}/{}", get_s3_bucket(), get_s3_url(), path);
+    return Some(format!("https://{}.{}/{}", get_s3_bucket(), get_s3_url(), path));
 }
