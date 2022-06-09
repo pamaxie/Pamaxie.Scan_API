@@ -55,7 +55,7 @@ pub async fn store_s3(data: &Bytes, data_extension: &String, content_type: &Stri
     };
 
     let data_hash = misc::compute_hash(data);
-    let path = format!("{}.{}", data_hash.await, data_extension);
+    let path = format!("public/{}.{}", data_hash.await, data_extension);
 
     //Store our data in the current bucket
     for backend in vec![digital_ocean] {
