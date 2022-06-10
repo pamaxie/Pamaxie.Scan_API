@@ -8,8 +8,8 @@ RUN USER=root cargo new --bin pamaxie_scan_api
 WORKDIR /Pamaxie
 
 # 2. Copy our manifests
-COPY ./Cargo.lock ./Cargo.lock
-COPY ./Cargo.toml ./Cargo.toml
+COPY Cargo.lock ./Cargo.lock
+COPY Cargo.toml ./Cargo.toml
 
 # 3. We need to copy the source too here, since we can't just build the dependencies.
 COPY ./src ./src
