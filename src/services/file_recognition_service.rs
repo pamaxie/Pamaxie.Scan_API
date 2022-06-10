@@ -1,6 +1,5 @@
 use actix_web::{get, post, HttpResponse, HttpRequest};
 use actix_web::web::Bytes;
-use reqwest::header::{HeaderName, HeaderValue};
 use crate::helper::{misc, db_api_helper};
 use crate::{s3_helpers, web_helper};
 use crate::helper::misc::{compute_hash, get_image_extension};

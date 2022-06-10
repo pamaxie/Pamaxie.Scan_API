@@ -20,12 +20,17 @@ pub struct PamApiTokenPayload{
 
 ///Returns the pamaxie API URL from the environment variable
 pub fn get_pam_url() -> String {
-    return get_env_variable("BaseUrl".to_string(), "https://api.pamaxie.com".to_string());
+    return get_env_variable("PAM_BASE_URL".to_string(), "https://api.pamaxie.com".to_string());
+}
+
+///Returns the database API Address from the environment variable
+pub fn get_pam_db_url() -> String {
+    return get_env_variable("DB_API_URL".to_string(), "".to_string());
 }
 
 ///Returns the pamaxie authorization token from the environment variable, to interact with the Database API
 pub fn get_pam_auth_token() -> String {
-    return get_env_variable("PamAuthToken".to_string(), "".to_string());
+    return get_env_variable("PAM_AUTH_TOKEN".to_string(), "".to_string());
 }
 
 //Checks if we can connect to our Database API with the set pamaxie authorization token
@@ -39,7 +44,7 @@ pub(crate) async fn check_auth(req: &HttpRequest) -> bool{
     
     let client = reqwest::Client::new();
     let response = client
-            .get([get_pam_url(), "/db/v1/scan/CanAuthenticate".to_string()].join(""))
+            .get([get_pam_db_url(), "/db/v1/scan/CanAuthenticate".to_string()].join(""))
             .header(AUTHORIZATION, auth.unwrap().to_str().unwrap().to_string())
             .send()
             .await;
@@ -64,7 +69,7 @@ pub(crate) async fn is_internal_auth(req: &HttpRequest) -> bool{
 
     let client = reqwest::Client::new();
     let response = client
-            .get([get_pam_url(), "/db/v1/scan/IsInternalToken".to_string()].join(""))
+            .get([get_pam_db_url(), "/db/v1/scan/IsInternalToken".to_string()].join(""))
             .header(AUTHORIZATION, auth.unwrap().to_str().unwrap().to_string())
             .send()
             .await;
@@ -108,7 +113,7 @@ pub async fn get_pam_token() -> Option<String> {
     eprintln!("Refreshing auth token now");
     let client = reqwest::Client::new();
     let response = client
-            .get(format!("{}{}", get_pam_url(), "/db/v1/scan/login"))
+            .get(format!("{}{}", get_pam_db_url(), "/db/v1/scan/login"))
             .header("Authorization", format!("Token {}", get_pam_auth_token()))
             .send()
             .await;

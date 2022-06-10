@@ -2,7 +2,8 @@ use std::thread;
 use std::time::Duration;
 
 use crate::JWT_TOKEN;
-use crate::web_helper::get_pam_url;
+
+use super::web_helper::get_pam_db_url;
 
 ///Checks if we can connect to our Database API
 /// # Returns
@@ -17,7 +18,7 @@ use crate::web_helper::get_pam_url;
 pub(crate) async fn check_db_connection() -> bool{
     let client = reqwest::Client::new();
     let response = client
-            .get(format!("{}{}", get_pam_url(), "db/v1/scan/CanConnect"))
+            .get(format!("{}{}", get_pam_db_url(), "db/v1/scan/CanConnect"))
             .send()
             .await;
 
@@ -50,7 +51,7 @@ pub(crate) async fn get_scan(hash: &String) -> Option<String>{
             let client = reqwest::Client::new();
             let token = mutex.as_str();
             let response = client
-                    .get(format!("{}{}", get_pam_url(), format!("/db/v1/scan/get={}", hash)))
+                    .get(format!("{}{}", get_pam_db_url(), format!("/db/v1/scan/get={}", hash)))
                     .header("Authorization", format!("Bearer {}", token))
                     .send()
                     .await;
@@ -107,7 +108,7 @@ pub(crate) async fn remove_scan(hash: &String) -> Result<(), ()>{
             let client = reqwest::Client::new();
             let token = mutex.as_str();
             let response = client
-                    .delete(format!("{}{}", get_pam_url(), format!("/db/v1/scan/delete={}", hash)))
+                    .delete(format!("{}{}", get_pam_db_url(), format!("/db/v1/scan/delete={}", hash)))
                     .header("Authorization", format!("Bearer {}", token))
                     .send()
                     .await;
@@ -123,10 +124,6 @@ pub(crate) async fn remove_scan(hash: &String) -> Result<(), ()>{
             if !response.as_ref().unwrap().status().is_success(){
                 return Err(());
             }
-    
-            let response_body = response.unwrap().text().await;
-    
-    
     
             std::mem::drop(lock);
             return Ok(())
@@ -170,7 +167,7 @@ pub(crate) async fn set_scan(scan_data: &String) -> bool{
     
             eprintln!("{}", scan_data);
             let response = client
-                    .post(format!("{}{}", get_pam_url(), "/db/v1/scan/update"))
+                    .post(format!("{}{}", get_pam_db_url(), "/db/v1/scan/update"))
                     .header("Authorization", format!("Bearer {}", token))
                     .body(scan_data.to_string())
                     .send()

@@ -1,7 +1,12 @@
 [package]
-name = "pamaxie_api"
+name = "pamaxie_scan_api"
 version = "0.1.0"
+authors = ["pamaxie <development@pamaxie.com>"]
 edition = "2021"
+
+[[bin]]
+name = "pamaxie_scan_api"
+path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

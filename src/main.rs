@@ -69,6 +69,8 @@ fn get_refresh_token() {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     validate_client_configuration();
+    let port: u16 = std::env::var("SCAN_API_PORT").unwrap_or("8080".to_string()).parse().unwrap();
+
     let _scheduler = thread::spawn(|| { get_refresh_token()});
 
     HttpServer::new(|| {
@@ -80,7 +82,7 @@ async fn main() -> std::io::Result<()> {
                 .service(services::worker_service::get_work)
                 .service(services::worker_service::post_work)
                 .service(services::worker_service::get_image)
-    }).bind(("127.0.0.1", 8080))?.run().await
+    }).bind(("127.0.0.1", port))?.run().await
 }
 
 ///Validates the client configuration
@@ -90,59 +92,71 @@ fn validate_client_configuration() {
 
     if s3_helpers::get_s3_access_key().is_empty() {
         has_error = true;
-        error_data = format!("{}The S3 Access Key has not been set. We require this key to be set to continue running. \
+        error_data = format!("{}The S3_ACCESS_KEY_ID enviorement variable has not been set. This enviorement variable is required to be set, for our API. \
         Please refer to our documentation to see how to set this environment variable.\n", error_data)
     }
 
     if s3_helpers::get_s3_secret_key().is_empty() {
         has_error = true;
-        error_data = format!("{}The S3 Secret Key has not been set. We require this key to be set to continue running. \
+        error_data = format!("{}The S3_ACCESS_KEY_SECRET enviorement variable has not been set. This enviorement variable is required to be set, for our API. \
+        Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
+    }
+
+    if s3_helpers::get_s3_bucket().is_empty() {
+        has_error = true;
+        error_data = format!("{}The S3_BUCKET_NAME enviorement variable has not been set. This enviorement variable is required to be set, for our API. \
         Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
     }
 
     if s3_helpers::get_s3_url().is_empty() {
         has_error = true;
-        error_data = format!("{}The S3 Url has not been set. We require the URL to be set to continue running. \
+        error_data = format!("{}The S3_URL enviorement variable has not been set. This enviorement variable is required to be set, for our API. \
         Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
     }
 
     if s3_helpers::get_s3_region().is_empty() {
-        println!("{}The Region for S3 Storage has not been set. If this was intentional you can ignore this warning.\n", error_data)
+        println!("{}The S3_STORAGE_REGION enviorement variable has not been set. If this was intentional you can ignore this warning.\n", error_data)
     }
 
     if web_helper::get_pam_auth_token().is_empty() {
         has_error = true;
-        error_data = format!("{}The API token is empty. It's required to be set to interact, test and authorize with our database.\
+        error_data = format!("{}The PAM_BASE_URL enviorement variable is empty. This enviorement variable is required to be set, for our API.\
         Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
     }
 
     if web_helper::get_pam_url().is_empty() {
         has_error = true;
-        error_data = format!("{}The API base URL is empty. It is required to be set, to interact, test and authorize with our database. \
+        error_data = format!("{}The BASE_URL URL enviorement variable is empty. This enviorement variable is required to be set, for our API. \
+        Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
+    }
+
+    if web_helper::get_pam_db_url().is_empty(){
+        has_error = true;
+        error_data = format!("{}The DB_API_URL enviorement variable is empty. This enviorement variable is required to be set, for our API. \
         Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
     }
 
     if sqs_helpers::get_aws_access_key().is_empty() {
         has_error = true;
-        error_data = format!("{}The AWS_ACCESS_KEY_ID is empty. It is required to be set, to interact with AWS SQS. 
+        error_data = format!("{}The AWS_ACCESS_KEY_ID enviorement variable is empty. This enviorement variable is required to be set, for our API. \
         Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
     }
 
     if sqs_helpers::get_aws_secret_access_key().is_empty() {
         has_error = true;
-        error_data = format!("{}The AWS_SECRET_ACCESS_KEY is empty. It is required to be set, to interact with AWS SQS. 
+        error_data = format!("{}The AWS_SECRET_ACCESS_KEY enviorement variable is empty. This enviorement variable is required to be set, for our API. \
         Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
     }
 
     if sqs_helpers::get_aws_sqs_queue_url().is_empty() {
         has_error = true;
-        error_data = format!("{}The AWS_SQS_QUEUE_URL_0 is empty. It is required to be set, to interact with AWS SQS. 
+        error_data = format!("{}The AWS_SQS_QUEUE_URL_0 enviorement variable is empty. This enviorement variable is required to be set, for our API. \
         Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
     }
 
     if sqs_helpers::get_aws_default_region().is_empty() {
         has_error = true;
-        error_data = format!("{}The AWS_DEFAULT_REGION is empty. It is required to be set, to interact with AWS SQS. 
+        error_data = format!("{}The AWS_DEFAULT_REGION enviorement variable is empty. This enviorement variable is required to be set, for our API. \
         Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
     }
 

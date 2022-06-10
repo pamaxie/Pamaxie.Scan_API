@@ -14,20 +14,20 @@ struct Storage {
 }
 
 ///Returns the S3 Access Key ID
-pub(crate) fn get_s3_access_key() -> String { return get_env_variable("S3AccessKeyId".to_string(), "".to_string()); }
+pub(crate) fn get_s3_access_key() -> String { return get_env_variable("S3_ACCESS_KEY_ID".to_string(), "".to_string()); }
 
 ///Returns the S3 Secret Access Key
-pub(crate) fn get_s3_secret_key() -> String { return get_env_variable("S3AccessKey".to_string(), "".to_string()); }
+pub(crate) fn get_s3_secret_key() -> String { return get_env_variable("S3_ACCESS_KEY_SECRET".to_string(), "".to_string()); }
 
 ///Returns the S3 Storage Bucket
-pub(crate) fn get_s3_bucket() -> String { return get_env_variable("S3Bucket".to_string(), "pam-dev".to_string()); }
+pub(crate) fn get_s3_bucket() -> String { return get_env_variable("S3_BUCKET_NAME".to_string(), "pam-dev".to_string()); }
 
 ///Returns the S3 Region
-pub(crate) fn get_s3_region() -> String { return get_env_variable("S3Region".to_string(), "".to_string()); }
+pub(crate) fn get_s3_region() -> String { return get_env_variable("S3_STORAGE_REGION".to_string(), "".to_string()); }
 
 ///Returns the S3 Storage URL
 pub(crate) fn get_s3_url() -> String {
-    return get_env_variable("S3Url".to_string(), "sfo3.digitaloceanspaces.com".to_string());
+    return get_env_variable("S3_URL".to_string(), "".to_string());
 }
 
 ///Stores a piece of data in the S3 Storage bucket, and returns the URL to the data
@@ -48,7 +48,7 @@ pub(crate) fn get_s3_url() -> String {
 /// store_s3_data(data, data_extension, content_type).await;
 /// ```
 pub async fn store_s3(data: &Bytes, data_extension: &String, content_type: &String) -> Option<String> {
-    let credentials = Credentials::from_env_specific(Some("S3AccessKeyId"), Some("S3AccessKey"), None, None);
+    let credentials = Credentials::from_env_specific(Some("S3_ACCESS_KEY_ID"), Some("S3_ACCESS_KEY_SECRET"), None, None);
     let bucket = Storage {
         region: Region::Custom {
             region: get_s3_region(),
