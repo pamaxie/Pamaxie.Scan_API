@@ -1,6 +1,7 @@
 ![**Pamaxie**](https://i.imgur.com/UzSZPs2.png)
 
 [![Rust](https://github.com/pamaxie/Pamaxie/actions/workflows/rust.yml/badge.svg)](https://github.com/pamaxie/Pamaxie/actions/workflows/rust.yml)
+[![Publish Docker image](https://github.com/pamaxie/Pamaxie/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/pamaxie/Pamaxie/actions/workflows/docker-publish.yml)
 
 Documentation for this project can be found at [Pamaxies wiki](https://wiki.pamaxie.com/). API Credentials can be created at [Pamaxies website](https://pamaxie.com/). Please let us know if the API misbehaves in any way. We will assist you as soon as possible.
 
