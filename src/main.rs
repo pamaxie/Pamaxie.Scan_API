@@ -82,7 +82,7 @@ async fn main() -> std::io::Result<()> {
                 .service(services::worker_service::get_work)
                 .service(services::worker_service::post_work)
                 .service(services::worker_service::get_image)
-    }).bind(("127.0.0.1", port))?.run().await
+    }).bind(("0.0.0.0", port))?.run().await
 }
 
 ///Validates the client configuration
@@ -120,7 +120,7 @@ fn validate_client_configuration() {
 
     if web_helper::get_pam_auth_token().is_empty() {
         has_error = true;
-        error_data = format!("{}The PAM_BASE_URL enviorement variable is empty. This enviorement variable is required to be set, for our API.\
+        error_data = format!("{}The PAM_AUTH_TOKEN enviorement variable is empty. This enviorement variable is required to be set, for our API.\
         Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
     }
 
