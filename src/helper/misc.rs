@@ -64,3 +64,48 @@ pub fn get_json_value(contents: &String) -> Option<Value>{
     };
     return Some(v);
 }
+
+///Gets the image extension of a given image
+/// 
+/// # Arguments
+/// image: &Bytes - The image to get the extension of
+/// 
+/// # Returns
+/// String - The extension of the image
+pub fn get_image_extension(image: &Bytes) -> Option<String>{
+
+    if infer::image::is_png(image){
+        return Some("png".to_string());
+    }
+    else if infer::image::is_jpeg(image) || infer::image::is_jpeg2000(image) {
+        return Some("jpg".to_string());
+    }
+    else if infer::image::is_gif(image){
+        return Some("gif".to_string());
+    }
+    else if infer::image::is_webp(image){
+        return Some("webp".to_string());
+    }
+    else {
+        return Some("png".to_string());
+    }
+}
+
+///Validates if our recognition service has a correct result stored for data
+/// 
+/// # Arguments
+/// result: &Value - The result to validate
+/// 
+/// # Returns
+/// bool - True if the result is valid, false otherwise
+pub fn validate_recognition_result(result: &Value) -> bool{
+    if (result["Key"].is_null()) || 
+    (result["ScanResult"].is_null()) || 
+    (result["DataType"].is_null()) || 
+    (result["DataExtension"].is_null() ||
+    (result["ScanMachineGuid"].is_null())) {
+        return false;
+    }
+
+    return true;
+}

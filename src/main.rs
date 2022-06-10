@@ -79,6 +79,7 @@ async fn main() -> std::io::Result<()> {
                 .service(services::file_recognition_service::get_hash)
                 .service(services::worker_service::get_work)
                 .service(services::worker_service::post_work)
+                .service(services::worker_service::get_image)
     }).bind(("127.0.0.1", 8080))?.run().await
 }
 
@@ -103,6 +104,10 @@ fn validate_client_configuration() {
         has_error = true;
         error_data = format!("{}The S3 Url has not been set. We require the URL to be set to continue running. \
         Please refer to our documentation to see how to set this environment variable.\r\n", error_data);
+    }
+
+    if s3_helpers::get_s3_region().is_empty() {
+        println!("{}The Region for S3 Storage has not been set. If this was intentional you can ignore this warning.\n", error_data)
     }
 
     if web_helper::get_pam_auth_token().is_empty() {

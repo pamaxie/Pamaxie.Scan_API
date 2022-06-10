@@ -1,9 +1,9 @@
 use std::ops::Range;
 use std::thread;
 use std::time::Duration;
-use actix_web::{get, post, HttpResponse, HttpRequest};
+use actix_web::{get, post, HttpResponse, HttpRequest, web};
 use serde::{Serialize, Deserialize};
-use crate::helper::{db_api_helper, sqs_helpers, misc};
+use crate::helper::{db_api_helper, sqs_helpers, misc, s3_helpers};
 use crate::web_helper;
 use serde_json::{Value, json};
 use aws_sdk_sqs::{Client, Region};
@@ -25,7 +25,7 @@ pub struct WorkQueueData{
 /// 
 /// # Returns
 /// HttpResponse - The response object
-#[get("worker/v1/work")]
+#[get("scan/v1/worker/get_work")]
 pub async fn get_work(req: HttpRequest) -> HttpResponse {
 
     //Check if this request is authorized to access this API
@@ -72,9 +72,11 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
         let deparsed_result_value = deparsed_result.unwrap();
         
 
-        if deparsed_result_value["ImageHash"] == "" || deparsed_result_value["DataExtension"] == "" || deparsed_result_value["ScanUrl"] == "" || deparsed_result_value["DataType"] == "" {
-            thread::sleep(Duration::from_millis(100));
-            continue;
+        //Check if the data is valid
+        let validation_result = misc::validate_recognition_result(&deparsed_result_value);
+
+        if validation_result {
+            return HttpResponse::BadRequest().body("Invalid data found in request");
         }
 
         let image_hash = &deparsed_result_value["ImageHash"].as_str();
@@ -98,7 +100,7 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
 /// 
 /// # Returns
 /// HttpResponse - The response object
-#[post("worker/v1/work")]
+#[post("scan/v1/worker/post_result")]
 pub async fn post_work(req: HttpRequest, body: String) -> HttpResponse {
     //Check if this request is authorized to access this API
     if !web_helper::check_auth(&req).await{
@@ -129,26 +131,45 @@ pub async fn post_work(req: HttpRequest, body: String) -> HttpResponse {
     let mut result: Value = serde_json::from_str(&body).unwrap();
 
     //Check if the data is valid
-    if (result["Key"] == "") || (result["ScanResult"] == "") || (result["DataType"] == "") || (result["DataExtension"] == "") {
+    let validation_result = misc::validate_recognition_result(&result);
+
+    if !validation_result {
         return HttpResponse::BadRequest().body("Invalid data found in request");
     }
 
     //Set values that could've been maliciously modified by the client
     result["IsUserScan"] = json!(is_pam_scan);
     result["ScanMachineGuid"] = json!(jwt_payload.as_ref().unwrap().apiTokenMachineGuid);
+    
+    //Remove the Result from S3 storage
+    let s3_removal_result = s3_helpers::remove_s3(&result["Key"].as_str().unwrap().to_string(), &result["DataExtension"].as_str().unwrap().to_string()).await;
+
+    if s3_removal_result.is_err() {
+        return HttpResponse::InternalServerError().body("Something went wrong while attempting to remove the file from S3. Please try again later.");
+    }
 
     //Save the scan data to our API
     let storage_result = db_api_helper::set_scan(&serde_json::to_string(&result).unwrap().to_string()).await;
 
-    //Publish the result on AWS SQS
-    
-
-    
     if storage_result{
         return HttpResponse::Ok().body("Data has been accepted and stored by our Db API".to_string());
     }else {
         return HttpResponse::InternalServerError().body("Data could not be stored by our Db API. Please try again later.".to_string());
     }
+}
+
+#[get("scan/v1/worker/get_image/{image_name}")]
+pub async fn get_image(path: web::Path<String>) -> HttpResponse {
+    let image_data = s3_helpers::get_s3_item(&path).await;
+
+    if image_data.is_none(){
+        return HttpResponse::NotFound().body("Could not find the requested item on our storage API");
+    }
+
+    let unwrapped_image_data = image_data.unwrap();
+    let data_type = format!("image/{}", misc::get_image_extension(&unwrapped_image_data).unwrap());
+
+    return HttpResponse::Ok().content_type(data_type).body(unwrapped_image_data);
 }
 
 ///Add Work to our processing queue
@@ -185,6 +206,16 @@ pub async fn add_work(scan_hash: &String, scan_url: &String, data_type: &String,
 
 
     let result = sqs_helpers::send_message(&client, &queue_url, &seralized_work_data.unwrap().to_string()).await;
+    
+    //Remove the item if we find an error. This should always be done
+    if !result.is_ok(){
+        let s3_removal = s3_helpers::remove_s3(&scan_hash, &data_extension).await;
+
+        if s3_removal.is_err(){
+            eprintln!("Could not remove the data from our S3 bucket. Please ensure connection parameters are correct.");
+        }
+    }
+
     return result.is_ok();
 }
 
@@ -209,9 +240,29 @@ pub async fn get_work_result(item_hash: &String) -> Option<String> {
         let result = db_api_helper::get_scan(item_hash).await;
         
         if result.is_some() {
-            return Some(result.unwrap());
+
+            let unwrapped_result = result.unwrap();
+            let result: Value = serde_json::from_str(&unwrapped_result).unwrap();
+
+            //Check if the data is valid
+            let validation_result = misc::validate_recognition_result(&result);
+        
+            if !validation_result {
+                //Remove the invalid item hash so we don't encouter it again.
+                let deletion_result = db_api_helper::remove_scan(item_hash).await;
+
+                if deletion_result.is_err(){
+                    eprintln!("Could not remove an invalid scan result from our databse. Please ensure connection parameters are correct.");
+                }
+
+                continue;
+            }
+
+            return Some(unwrapped_result);
         }
 
+
+        
         //TODO: Evaluate if this is too intensive and should be made async
         thread::sleep(Duration::from_millis(450));
     }

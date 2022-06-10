@@ -82,6 +82,63 @@ pub(crate) async fn get_scan(hash: &String) -> Option<String>{
     return None;
 }
 
+///Removes a scan from our Database API
+/// # Arguments
+/// * `hash` - The hash of the scan to remove
+/// 
+/// # Returns
+/// * `bool` - True if we could remove the scan, false otherwise
+/// 
+/// # Example
+/// ```
+/// use pamaxie_api::database_helper::remove_scan;
+/// 
+/// let removal_result = remove_scan("hash");
+/// ```
+pub(crate) async fn remove_scan(hash: &String) -> Result<(), ()>{
+    //Take 100 attempts to get the lock. might fail multiple times since this method is polled quite a lot.
+    let x = std::ops::Range {start: 0, end: 100};
+
+    for _i in x{
+        let mut lock = JWT_TOKEN.try_lock();
+
+
+        if let Ok(ref mut mutex) = lock {
+            let client = reqwest::Client::new();
+            let token = mutex.as_str();
+            let response = client
+                    .delete(format!("{}{}", get_pam_url(), format!("/db/v1/scan/delete={}", hash)))
+                    .header("Authorization", format!("Bearer {}", token))
+                    .send()
+                    .await;
+    
+            if response.is_err() {
+                eprintln!("Could not authenticate with JWT bearer token. This should normally not happen.");
+    
+                std::mem::drop(lock);
+                return Err(());
+            }
+    
+            //Item could probably not be found.
+            if !response.as_ref().unwrap().status().is_success(){
+                return Err(());
+            }
+    
+            let response_body = response.unwrap().text().await;
+    
+    
+    
+            std::mem::drop(lock);
+            return Ok(())
+        } else {
+            thread::sleep(Duration::from_millis(15));
+            continue;
+        };
+    }
+
+    return Err(());
+}
+
 ///Sets the scan result and data in the database
 /// # Arguments
 /// * `hash` - The hash of the scan to get
