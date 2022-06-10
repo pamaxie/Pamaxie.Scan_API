@@ -5,7 +5,7 @@ EXPOSE 443
 
 # 1. Create a new empty shell project
 RUN USER=root cargo new --bin pamaxie_scan_api
-WORKDIR /src
+WORKDIR .
 
 # 2. Copy our manifests
 COPY /Cargo.lock /Cargo.lock
