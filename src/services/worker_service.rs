@@ -1,8 +1,8 @@
 use std::ops::Range;
-use std::thread;
 use std::time::Duration;
 use actix_web::{get, post, HttpResponse, HttpRequest, web};
 use serde::{Serialize, Deserialize};
+use tokio::time::sleep;
 use crate::helper::{db_api_helper, sqs_helpers, misc, s3_helpers};
 use crate::web_helper;
 use serde_json::{Value, json};
@@ -58,7 +58,7 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
         if unwrapped_result.is_empty(){
 
             //Wait 100 mils until looping to not spam the API to death.
-            thread::sleep(Duration::from_millis(100));
+            sleep(Duration::from_millis(100)).await;
             continue;
         }
 
@@ -261,10 +261,7 @@ pub async fn get_work_result(item_hash: &String) -> Option<String> {
             return Some(unwrapped_result);
         }
 
-
-        
-        //TODO: Evaluate if this is too intensive and should be made async
-        thread::sleep(Duration::from_millis(450));
+        sleep(Duration::from_millis(450)).await;
     }
 
     return None;

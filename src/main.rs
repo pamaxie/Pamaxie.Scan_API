@@ -1,5 +1,6 @@
 pub(crate) use actix_web::{App, HttpServer, web};
 use helper::sqs_helpers;
+use tokio::time::sleep;
 use std::{thread, process::exit, string::String, time::{Duration, Instant}, sync::{Mutex}};
 use crate::helper::{s3_helpers, web_helper};
 use lazy_static::lazy_static;
@@ -55,11 +56,13 @@ fn get_refresh_token() {
 
             let runtime = start.elapsed();
             if let Some(remaining) = wait_time.checked_sub(runtime) {
+                
                 eprintln!(
                     "JWT refresh schedule slice has time left over; sleeping for {:?} seconds",
                     remaining.as_secs()
                 );
-                thread::sleep(remaining);
+
+                sleep(remaining).await;
             }
         }
     });

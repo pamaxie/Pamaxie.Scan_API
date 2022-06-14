@@ -1,4 +1,4 @@
-use aws_sdk_sqs::{self, Client, Error};
+use aws_sdk_sqs::{self, Client, Error, model::MessageSystemAttributeName};
 use super::misc::get_env_variable;
 
 ///Returns the pamaxie API URL from the environment variable
@@ -30,13 +30,28 @@ pub fn get_aws_sqs_queue_url() -> String {
 /// 
 /// # Returns
 /// Result<(), Error> - The SQS response
-pub async fn send_message(client: &Client, queue_url: &String, message: &String) -> Result<(), Error> { 
-    client
-        .send_message()
+pub async fn send_message(client: &Client, queue_url: &String, message: &String/*, project_id: &u64*/) -> Result<(), Error> { 
+    
+    //Put into a customer specific queue. This is disabled for now but will definetly be interesting in the future.
+    /*if project_id > 0 {
+        let queue_id = String::from(project_id.to_string());
+
+        client.send_message()
         .queue_url(queue_url)
         .message_body(message)
+        .set_message_group_id(Some(queue_id))
         .send()
         .await?;
+
+        return Ok(());
+    }*/
+
+    client.send_message()
+    .queue_url(queue_url)
+    .message_body(message)
+    .send()
+    .await?;
+
 
     Ok(())
 }
@@ -49,7 +64,9 @@ pub async fn send_message(client: &Client, queue_url: &String, message: &String)
 /// 
 /// #Returns
 /// String - The message from the SQS queue
-pub async fn get_message(client: &Client, queue_url: &String) -> Result<String, Error> {
+pub async fn get_message(client: &Client, queue_url: &String, project_id: &u64) -> Result<String, Error> {
+
+    
     let rcv_message_output = client.receive_message().queue_url(queue_url).send().await?;
     let mut message_contents: String = "".to_string();
 

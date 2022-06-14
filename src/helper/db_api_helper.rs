@@ -1,5 +1,6 @@
-use std::thread;
 use std::time::Duration;
+
+use tokio::time::sleep;
 
 use crate::JWT_TOKEN;
 
@@ -75,7 +76,7 @@ pub(crate) async fn get_scan(hash: &String) -> Option<String>{
             std::mem::drop(lock);
             return Some(response_body.unwrap());
         } else {
-            thread::sleep(Duration::from_millis(15));
+            sleep(Duration::from_millis(30)).await;
             continue;
         };
     }
@@ -128,7 +129,7 @@ pub(crate) async fn remove_scan(hash: &String) -> Result<(), ()>{
             std::mem::drop(lock);
             return Ok(())
         } else {
-            thread::sleep(Duration::from_millis(15));
+            sleep(Duration::from_millis(30)).await;
             continue;
         };
     }
@@ -195,7 +196,7 @@ pub(crate) async fn set_scan(scan_data: &String) -> bool{
             std::mem::drop(lock);
             return false;
         }else{
-            thread::sleep(Duration::from_millis(15));
+            sleep(Duration::from_millis(30)).await;
             continue;
         }
     }
