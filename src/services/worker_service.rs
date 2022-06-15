@@ -38,6 +38,14 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
         return HttpResponse::Unauthorized().body("Currently only pamaxie's own clients are allowed to scan files. Stay tuned for more.");
     }
 
+
+    let token_payload = web_helper::get_scan_token_payload(&req);
+
+    if token_payload.is_none(){
+        return HttpResponse::Unauthorized().body("The token sent to authorize with us is invalid and could not be pased.");
+    }
+
+    let unwrapped_token_payload = token_payload.unwrap();
     let shared_config = aws_config::from_env().region(Region::new(sqs_helpers::get_aws_default_region())).load().await;
     let client = Client::new(&shared_config);
     let queue_url = sqs_helpers::get_aws_sqs_queue_url();
@@ -46,7 +54,7 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
     let x = Range{start: 0, end: 50};
 
     for _i in x{
-        let result = sqs_helpers::get_message(&client, &queue_url).await;
+        let result = sqs_helpers::get_message(&client, &queue_url, &unwrapped_token_payload.projectId).await;
 
         if result.is_err() {
             return HttpResponse::InternalServerError().body("Something went wrong while attempting to poll messages. Please try again later.");
@@ -111,7 +119,6 @@ pub async fn post_work(req: HttpRequest, body: String) -> HttpResponse {
 
     //Check if this is an internal request from one of our workers
     if !web_helper::is_internal_auth(&req).await{
-
         return HttpResponse::Unauthorized().body("Currently only pamaxie's own clients are allowed to scan files. Stay tuned for more.");
     }else{
         is_pam_scan = true;
@@ -145,7 +152,7 @@ pub async fn post_work(req: HttpRequest, body: String) -> HttpResponse {
     let s3_removal_result = s3_helpers::remove_s3(&result["Key"].as_str().unwrap().to_string(), &result["DataExtension"].as_str().unwrap().to_string()).await;
 
     if s3_removal_result.is_err() {
-        return HttpResponse::InternalServerError().body("Something went wrong while attempting to remove the file from S3. Please try again later.");
+        return HttpResponse::NotFound().body("Something went wrong while attempting to remove the file from S3. Please try again later. This usually happens because the requested file does not exist. Please check that the filename is correct. If you are sure it is correct, contact Pamaxie's support.");
     }
 
     //Save the scan data to our API

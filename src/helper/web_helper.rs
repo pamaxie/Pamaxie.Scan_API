@@ -8,10 +8,10 @@ use super::misc::get_env_variable;
 #[derive(Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct PamApiTokenPayload{
-    pub ownerId: i64,
+    pub ownerId: u64,
     pub isApiToken: bool,
     pub apiTokenMachineGuid: String,
-    pub projectId: i64,
+    pub projectId: u64,
     pub nbf: i32,
     pub exp: i32,
     pub iat: i32,

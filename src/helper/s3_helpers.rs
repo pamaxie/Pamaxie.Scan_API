@@ -97,7 +97,7 @@ pub async fn store_s3(data: &Bytes, data_extension: &String, content_type: &Stri
 /// store_s3_data(data, data_extension, content_type).await;
 /// ```
 pub async fn remove_s3(data_hash: &String, data_extension: &String) -> Result<(), String> {
-    let credentials = Credentials::from_env_specific(Some("S3AccessKeyId"), Some("S3AccessKey"), None, None);
+    let credentials = Credentials::from_env_specific(Some("AWS_ACCESS_KEY_ID"), Some("S3_ACCESS_KEY_SECRET"), None, None);
     let bucket = Storage {
         region: Region::Custom {
             region: get_s3_region(),
