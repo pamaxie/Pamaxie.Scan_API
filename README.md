@@ -1,4 +1,4 @@
-![**Pamaxie**]([https://i.imgur.com/UzSZPs2.png](https://i.imgur.com/Xk5oI8l.png))
+![**Pamaxie**](https://i.imgur.com/Xk5oI8l.png)
 
 [![Rust](https://github.com/pamaxie/Pamaxie/actions/workflows/rust.yml/badge.svg)](https://github.com/pamaxie/Pamaxie/actions/workflows/rust.yml)
 [![Publish Docker image](https://github.com/pamaxie/Pamaxie/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/pamaxie/Pamaxie/actions/workflows/docker-publish.yml)
