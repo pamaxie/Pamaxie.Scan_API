@@ -23,7 +23,7 @@ pub(crate) fn get_s3_access_key() -> String { return get_env_variable(S3_ACCESS_
 pub(crate) fn get_s3_secret_key() -> String { return get_env_variable(S3_ACCESS_KEY_SECRET_ENV.to_string(), "".to_string()); }
 
 ///Returns the S3 Storage Bucket
-pub(crate) fn get_s3_bucket() -> String { return get_env_variable("S3_BUCKET_NAME".to_string(), "pam-dev".to_string()); }
+pub(crate) fn get_s3_bucket() -> String { return get_env_variable("S3_BUCKET_NAME".to_string(), "production".to_string()); }
 
 ///Returns the S3 Region
 pub(crate) fn get_s3_region() -> String { return get_env_variable("S3_STORAGE_REGION".to_string(), "".to_string()); }
