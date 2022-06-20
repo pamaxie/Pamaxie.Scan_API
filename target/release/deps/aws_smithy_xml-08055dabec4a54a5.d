@@ -1,0 +1,11 @@
+/Users/liaduerr/Desktop/Work/Pamaxie/target/release/deps/aws_smithy_xml-08055dabec4a54a5.rmeta: /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/lib.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/decode.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/encode.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/escape.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/unescape.rs
+
+/Users/liaduerr/Desktop/Work/Pamaxie/target/release/deps/libaws_smithy_xml-08055dabec4a54a5.rlib: /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/lib.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/decode.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/encode.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/escape.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/unescape.rs
+
+/Users/liaduerr/Desktop/Work/Pamaxie/target/release/deps/aws_smithy_xml-08055dabec4a54a5.d: /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/lib.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/decode.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/encode.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/escape.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/unescape.rs
+
+/Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/lib.rs:
+/Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/decode.rs:
+/Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/encode.rs:
+/Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/escape.rs:
+/Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-xml-0.42.0/src/unescape.rs:

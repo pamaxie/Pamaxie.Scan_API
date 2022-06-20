@@ -23,7 +23,12 @@ pub(crate) async fn check_db_connection() -> bool{
             .send()
             .await;
 
-    response.is_err()
+    if response.is_ok(){ 
+        response.as_ref().unwrap().status().is_success()
+    }
+    else { 
+        false 
+    }
 }
 
 ///Gets a scan from via our Database API

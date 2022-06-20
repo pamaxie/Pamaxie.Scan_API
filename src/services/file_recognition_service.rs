@@ -13,16 +13,14 @@ use super::worker_service;
 /// 
 /// # Returns
 /// Responder - The response object
-#[get("/")]
+#[get("scan/v1/status")]
 pub async fn check_api() -> impl actix_web::Responder {
     return if db_api_helper::check_db_connection().await
     {
-        HttpResponse::Ok().body("Scanning API is available\n\
-                                        Database is not Available")
+        HttpResponse::Ok().body("{\"SCAN_STATUS\" = \"Scanning API is available\", DB_STATUS = \"Database is Available\"}")
     }else
     {
-        HttpResponse::Ok().body("Scanning API is available\n\
-                                    Database API is available")
+        HttpResponse::Ok().body("{\"SCAN_STATUS\" = \"Scanning API is available\", DB_STATUS = \"Database is not Available\"}")
     }
 }
 

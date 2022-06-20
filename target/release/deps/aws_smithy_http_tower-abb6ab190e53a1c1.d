@@ -1,0 +1,10 @@
+/Users/liaduerr/Desktop/Work/Pamaxie/target/release/deps/aws_smithy_http_tower-abb6ab190e53a1c1.rmeta: /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/lib.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/dispatch.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/map_request.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/parse_response.rs
+
+/Users/liaduerr/Desktop/Work/Pamaxie/target/release/deps/libaws_smithy_http_tower-abb6ab190e53a1c1.rlib: /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/lib.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/dispatch.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/map_request.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/parse_response.rs
+
+/Users/liaduerr/Desktop/Work/Pamaxie/target/release/deps/aws_smithy_http_tower-abb6ab190e53a1c1.d: /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/lib.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/dispatch.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/map_request.rs /Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/parse_response.rs
+
+/Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/lib.rs:
+/Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/dispatch.rs:
+/Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/map_request.rs:
+/Users/liaduerr/.cargo/registry/src/github.com-1ecc6299db9ec823/aws-smithy-http-tower-0.42.0/src/parse_response.rs:

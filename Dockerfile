@@ -13,6 +13,9 @@ COPY ./Cargo.toml ./Cargo.toml
 
 # 3. We need to copy the source too here, since we can't just build the dependencies.
 COPY ./src ./src
+
+#4. Copy the target directory so we don't have to rebuild all the individual packages
+COPY ./target/ ./target
 RUN cargo build --release
 RUN rm src/*.rs
 
