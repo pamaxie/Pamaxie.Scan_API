@@ -1,0 +1,2 @@
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/Users/liaduerr/Desktop/Work/Pamaxie/target/release/build/typenum-8f12de8215c25403/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/Users/liaduerr/Desktop/Work/Pamaxie/target/release/build/typenum-8f12de8215c25403/out/op.rs
