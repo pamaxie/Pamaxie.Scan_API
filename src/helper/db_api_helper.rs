@@ -19,14 +19,14 @@ use super::web_helper::get_pam_db_url;
 pub(crate) async fn check_db_connection() -> bool{
     let client = reqwest::Client::new();
     let response = client
-            .get(format!("{}{}", get_pam_db_url(), "db/v1/scan/CanConnect"))
+            .get(format!("{}{}", get_pam_db_url(), "/db/v1/scan/CanConnect"))
             .send()
             .await;
 
     if response.is_ok(){ 
         response.as_ref().unwrap().status().is_success()
     }
-    else { 
+    else {
         false 
     }
 }
