@@ -210,7 +210,7 @@ pub async fn add_work(scan_hash: &String, scan_url: &String, data_type: &String,
     //create our work object and seralize it's work data
     let new_work_data = WorkQueueData{
         ImageHash: scan_hash.to_string(),
-        ScanUrl: scan_url.to_string(),
+        ImageUrl: scan_url.to_string(),
         DataType: data_type.to_string(),
         DataExtension: data_extension.to_string()
     };
