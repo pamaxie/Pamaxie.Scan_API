@@ -186,7 +186,7 @@ async fn get_image_recognition_result(image: &Bytes) -> Result<String, (i16, Str
     }
     
     //Attempt to add our work to the queue if not exit here.
-    if !worker_service::add_work(&image_hash, &data_url.unwrap(), &data_extension_ref, &String::from("image")).await {
+    if !worker_service::add_work(&image_hash, &data_url.unwrap(), &String::from("image"), &data_extension_ref).await {
         return Err((500, "We could not add the work to the queue. Aborting process. Please try again later".to_string()));
     }
 

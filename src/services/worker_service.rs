@@ -13,7 +13,7 @@ use aws_sdk_sqs::{Client, Region};
 #[derive(Serialize, Deserialize)]
 pub struct WorkQueueData{
     pub ImageHash: String,
-    pub ScanUrl: String,
+    pub ImageUrl: String,
     pub DataType: String,
     pub DataExtension: String
 }
