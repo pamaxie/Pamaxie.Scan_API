@@ -51,7 +51,7 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
     let queue_url = sqs_helpers::get_aws_sqs_queue_url();
 
     //Start polling until we find work we can return.
-    let x = Range{start: 0, end: 50};
+    let x = Range{start: 0, end: 10};
 
     for _i in x{
         let result = sqs_helpers::get_message(&client, &queue_url, &unwrapped_token_payload.projectId).await;
@@ -64,9 +64,8 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
 
         //We didn't get any result and can just loop again
         if unwrapped_result.is_empty(){
-
-            //Wait 100 mils until looping to not spam the API to death.
-            sleep(Duration::from_millis(100)).await;
+            //Wait a bit between requests to savior our API a bit
+            sleep(Duration::from_millis(10)).await;
             continue;
         }
 
@@ -110,8 +109,7 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
 /// HttpResponse - The response object
 #[post("scan/v1/worker/post_result")]
 pub async fn post_work(req: HttpRequest, body: String) -> HttpResponse {
-    //Check if this request is authorized to access this API
-    if !web_helper::check_auth(&req).await{
+    if !web_helper::check_auth(&req).await {
         return HttpResponse::Unauthorized().finish();
     }
 
