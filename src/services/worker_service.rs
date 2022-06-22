@@ -98,7 +98,7 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
         return HttpResponse::Ok().body(unwrapped_result);
     }
 
-    return HttpResponse::BadRequest().body("We could not poll any work in a timely manner. Please try again later.");
+    return HttpResponse::RequestTimeout().body("We could not poll any work in a timely manner. Please try again later.");
 }
 
 ///Sets a piece of work as completed and posts it's results to the database
@@ -166,7 +166,13 @@ pub async fn post_work(req: HttpRequest, body: String) -> HttpResponse {
 }
 
 #[get("scan/v1/worker/get_image/{image_name}")]
-pub async fn get_image(path: web::Path<String>) -> HttpResponse {
+pub async fn get_image(req: HttpRequest, path: web::Path<String>) -> HttpResponse {
+    //Check if this request is authorized to access this API
+    if !web_helper::check_auth(&req).await{
+        return HttpResponse::Unauthorized().finish();
+    }
+    
+
     let image_data = s3_helpers::get_s3_item(&path).await;
 
     if image_data.is_none(){
