@@ -1,4 +1,4 @@
-use aws_sdk_sqs::{self, Client, Error, model::MessageSystemAttributeName};
+use aws_sdk_sqs::{self, Client, Error};
 use super::misc::get_env_variable;
 
 ///Returns the pamaxie API URL from the environment variable
@@ -64,16 +64,19 @@ pub async fn send_message(client: &Client, queue_url: &String, message: &String/
 /// 
 /// #Returns
 /// String - The message from the SQS queue
-pub async fn get_message(client: &Client, queue_url: &String, project_id: &u64) -> Result<String, Error> {
+pub async fn get_message(client: &Client, queue_url: &String) -> Result<String, Error> {
 
     
     let rcv_message_output = client.receive_message().queue_url(queue_url).send().await?;
     let mut message_contents: String = "".to_string();
 
     for message in rcv_message_output.messages.unwrap_or_default() {
-        //Set the message contents to what we wanna return
-        message_contents = String::from(format!("{}\n{}",message_contents, message.body().unwrap().to_string()));
+        message_contents = message.body().unwrap().to_string();
 
+        //Set the message contents to what we wanna return
+        message_contents = String::from(format!("{}", message_contents));
+
+        
         //Delete the message from the queue to pass it forward to process the data
         client.delete_message().set_receipt_handle(message.receipt_handle).queue_url(queue_url).send().await?;
     }

@@ -1,5 +1,5 @@
 use std::time::Duration;
-
+use actix_web::{web::{Bytes}};
 use tokio::time::sleep;
 
 use crate::JWT_TOKEN;
@@ -61,11 +61,11 @@ pub(crate) async fn get_scan(hash: &String) -> Option<String>{
                     .header("Authorization", format!("Bearer {}", token))
                     .send()
                     .await;
+            
+            std::mem::drop(lock);
     
             if response.is_err() {
                 eprintln!("Could not authenticate with JWT bearer token. This should normally not happen.");
-    
-                std::mem::drop(lock);
                 return None;
             }
     
@@ -75,10 +75,6 @@ pub(crate) async fn get_scan(hash: &String) -> Option<String>{
             }
     
             let response_body = response.unwrap().text().await;
-    
-    
-    
-            std::mem::drop(lock);
             return Some(response_body.unwrap());
         } else {
             sleep(Duration::from_millis(30)).await;
@@ -118,11 +114,11 @@ pub(crate) async fn remove_scan(hash: &String) -> Result<(), ()>{
                     .header("Authorization", format!("Bearer {}", token))
                     .send()
                     .await;
+            
+            std::mem::drop(lock);
     
             if response.is_err() {
                 eprintln!("Could not authenticate with JWT bearer token. This should normally not happen.");
-    
-                std::mem::drop(lock);
                 return Err(());
             }
     
@@ -130,8 +126,7 @@ pub(crate) async fn remove_scan(hash: &String) -> Result<(), ()>{
             if !response.as_ref().unwrap().status().is_success(){
                 return Err(());
             }
-    
-            std::mem::drop(lock);
+
             return Ok(())
         } else {
             sleep(Duration::from_millis(30)).await;
@@ -170,35 +165,31 @@ pub(crate) async fn set_scan(scan_data: &String) -> bool{
             let client = reqwest::Client::new();
             let token = mutex.as_str();
     
-    
-            eprintln!("{}", scan_data);
             let response = client
                     .post(format!("{}{}", get_pam_db_url(), "/db/v1/scan/update"))
                     .header("Authorization", format!("Bearer {}", token))
                     .body(scan_data.to_string())
                     .send()
                     .await;
+            
+            std::mem::drop(lock);
     
             if response.is_err() {
                 eprintln!("Could not communicate with API, this could be because of several issues, like an invalid Auth token.");
-                std::mem::drop(lock);
+                
                 return false;
             }
 
             if response.as_ref().unwrap().status() == 401{
                 eprintln!("We could not connect and authenticate with the API via the provided Auth Token");
-                std::mem::drop(lock);
                 return false;
             }
     
             //No errors found, so the data was stored successfully
             if response.as_ref().unwrap().status().is_success(){
-                std::mem::drop(lock);
                 return true;
             }
-    
-            //Release the lock from the mutex and return that we could not store our data
-            std::mem::drop(lock);
+
             return false;
         }else{
             sleep(Duration::from_millis(30)).await;
@@ -207,4 +198,49 @@ pub(crate) async fn set_scan(scan_data: &String) -> bool{
     }
     
     return false;
+}
+
+pub(crate) async fn get_image_hash(image_data: &Bytes) -> Option<String>{
+    //Take 100 attempts to set the lock.
+    let range = std::ops::Range {start: 0, end: 100};
+
+    for _n in range {
+        let mut lock = JWT_TOKEN.try_lock();
+
+        if let Ok(ref mut mutex) = lock{
+            let client = reqwest::Client::new();
+            let token = mutex.as_str();
+            let body_data = image_data.to_vec();
+    
+            let response = client
+                    .post(format!("{}{}", get_pam_db_url(), "/db/v1/scan/GetImageHash"))
+                    .header("Authorization", format!("Bearer {}", token))
+                    .body(body_data)
+                    .send()
+                    .await;
+            std::mem::drop(lock);
+    
+            if response.is_err() {
+                eprintln!("Could not communicate with API, this could be because of several issues, like an invalid Auth token.");
+                return None;
+            }
+
+            if response.as_ref().unwrap().status() == 401{
+                eprintln!("We could not connect and authenticate with the API via the provided Auth Token");
+                return None;
+            }
+
+            if !response.as_ref().unwrap().status().is_success() {
+                return None;
+            }
+    
+            let body_text = response.unwrap().text().await;
+            return Some(body_text.unwrap());
+        }else{
+            sleep(Duration::from_millis(30)).await;
+            continue;
+        }
+    }
+    
+    return None;
 }

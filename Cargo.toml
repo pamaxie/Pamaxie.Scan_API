@@ -1,6 +1,6 @@
 [package]
 name = "pamaxie_scan_api"
-version = "0.1.8"
+version = "0.2.0"
 authors = ["pamaxie <development@pamaxie.com>"]
 edition = "2021"
 
@@ -20,7 +20,6 @@ actix-web = "4"
 jwt = "0.16.0"
 infer = "0.7.0" # for file type detection
 futures = "0.3" # for our async / await blocks
-blake2 = "0.10.4"
 base64 = "0.9.3"
 rust-s3 = "0.30.0"
 lazy_static = "1.4.0"
@@ -28,3 +27,4 @@ kafka = "0.9.0"
 rusqlite = "0.27.0"
 aws-sdk-sqs = "0.12.0"
 aws-config = "0.12.0"
+image = "0.24.2"

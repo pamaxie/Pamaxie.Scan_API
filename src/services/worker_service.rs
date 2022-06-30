@@ -45,7 +45,7 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
         return HttpResponse::Unauthorized().body("The token sent to authorize with us is invalid and could not be pased.");
     }
 
-    let unwrapped_token_payload = token_payload.unwrap();
+    let _unwrapped_token_payload = token_payload.unwrap();
     let shared_config = aws_config::from_env().region(Region::new(sqs_helpers::get_aws_default_region())).load().await;
     let client = Client::new(&shared_config);
     let queue_url = sqs_helpers::get_aws_sqs_queue_url();
@@ -54,7 +54,7 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
     let x = Range{start: 0, end: 10};
 
     for _i in x{
-        let result = sqs_helpers::get_message(&client, &queue_url, &unwrapped_token_payload.projectId).await;
+        let result = sqs_helpers::get_message(&client, &queue_url).await;
 
         if result.is_err() {
             return HttpResponse::InternalServerError().body("Something went wrong while attempting to poll messages. Please try again later.");
@@ -80,9 +80,9 @@ pub async fn get_work(req: HttpRequest) -> HttpResponse {
         
 
         //Check if the data is valid
-        let validation_result = misc::validate_recognition_result(&deparsed_result_value);
+        let validation_result = misc::is_valid_queue_item(&deparsed_result_value);
 
-        if validation_result {
+        if !validation_result {
             return HttpResponse::BadRequest().body("Invalid data found in request");
         }
 
@@ -136,7 +136,7 @@ pub async fn post_work(req: HttpRequest, body: String) -> HttpResponse {
     let mut result: Value = serde_json::from_str(&body).unwrap();
 
     //Check if the data is valid
-    let validation_result = misc::validate_recognition_result(&result);
+    let validation_result = misc::is_valid_recognition_result(&result);
 
     if !validation_result {
         return HttpResponse::BadRequest().body("Invalid data found in request");
@@ -244,9 +244,9 @@ pub async fn add_work(scan_hash: &String, scan_url: &String, data_type: &String,
 /// # Notes
 /// None
 pub async fn get_work_result(item_hash: &String) -> Option<String> {
-    let x = Range{start: 0, end: 10};
+    let x = Range{start: 0, end: 134};
 
-    //Loop 10 times then exit so we don't loop indefinetly
+    //Loop 134 times which amounts to roughly 1 minute of waiting for a scan result. This seems long but depending on API load it is realistic.
     for _i in x {
         let result = db_api_helper::get_scan(item_hash).await;
         
@@ -254,9 +254,10 @@ pub async fn get_work_result(item_hash: &String) -> Option<String> {
 
             let unwrapped_result = result.unwrap();
             let result: Value = serde_json::from_str(&unwrapped_result).unwrap();
+            eprintln!("{}", result["key"]);
 
             //Check if the data is valid
-            let validation_result = misc::validate_recognition_result(&result);
+            let validation_result = misc::is_valid_recognition_result(&result);
         
             if !validation_result {
                 //Remove the invalid item hash so we don't encouter it again.
