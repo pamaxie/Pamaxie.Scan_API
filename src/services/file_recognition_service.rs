@@ -2,7 +2,6 @@ use actix_web::{get, post, HttpResponse, HttpRequest};
 use actix_web::web::Bytes;
 use crate::helper::{misc, db_api_helper};
 use crate::{s3_helpers, web_helper};
-use crate::helper::misc::{compute_hash, get_image_extension};
 
 use super::worker_service;
 
@@ -113,19 +112,6 @@ pub async fn detect_image(req: HttpRequest, body: Bytes) -> HttpResponse {
     }
 }
 
-///API endpoint, that returns the corresponding Blake2b512 hash of the data
-/// 
-/// # Arguments
-/// req: HttpRequest - The request object
-/// body: Bytes - The body of the request
-/// 
-/// # Returns
-/// HttpResponse - The response object
-#[post("scan/v1/detection/getHash")]
-pub async fn get_hash(_req: HttpRequest, body: Bytes) -> HttpResponse {
-    return HttpResponse::Ok().body(misc::compute_hash(&body).await);
-}
-
 ///Gets the scan result of the data, either from our database or from scanning the data via our scanning nodes
 /// # Arguments
 /// * `image` - The image to scan
@@ -141,9 +127,23 @@ pub async fn get_hash(_req: HttpRequest, body: Bytes) -> HttpResponse {
 /// let result = get_image_recognition_result(Bytes::from(image)).await;
 /// ```
 async fn get_image_recognition_result(image: &Bytes) -> Result<String, (i16, String)>{
-    
-    let image_hash = &compute_hash(image).await;
-    let db_item = db_api_helper::get_scan(image_hash).await;
+    let resized_image = misc::resize_image(image, &450, &0).await;
+
+    if resized_image.is_none(){
+        return Err((500, "Encountered an issue while attempting to process your image. Please validate it's data type is correct.".to_string()));
+    }
+
+    let unwrapped_image = resized_image.unwrap();
+
+    let image_hash = db_api_helper::get_image_hash(&unwrapped_image).await;
+
+    if image_hash.is_none(){
+        return Err((500, "We could not determine the hash of the image that was sent in please try again later".to_string()));
+    }
+
+    let unwrapped_image_hash = image_hash.unwrap();
+
+    let db_item = db_api_helper::get_scan(&unwrapped_image_hash).await;
 
     //Check if we could find an item in our database.
     if db_item.is_some(){
@@ -154,7 +154,7 @@ async fn get_image_recognition_result(image: &Bytes) -> Result<String, (i16, Str
         //Check our db item is valid json, otherwise we just rescan the item.
         if db_item_json.is_some() {
             //Check if the data stored is valid
-            let validation_result = misc::validate_recognition_result(&db_item_json.unwrap());
+            let validation_result = misc::is_valid_recognition_result(&db_item_json.unwrap());
 
             if validation_result {
                 //TODO: Add check where we poll our Github to check if new neural network version is available and to see which one this one was scanned on.
@@ -162,7 +162,7 @@ async fn get_image_recognition_result(image: &Bytes) -> Result<String, (i16, Str
             }
 
             //If the data stored is not valid, we delete it from our database and rescan the data.
-            let removal_result = db_api_helper::remove_scan(image_hash).await;
+            let removal_result = db_api_helper::remove_scan(&unwrapped_image_hash).await;
 
             if removal_result.is_err(){
                 eprintln!("Could not remove an invalid scan result from our databse. Please ensure connection parameters are correct.");
@@ -170,7 +170,7 @@ async fn get_image_recognition_result(image: &Bytes) -> Result<String, (i16, Str
         }
     }
 
-    let data_extension = get_image_extension(&image);
+    let data_extension = misc::get_image_extension(&unwrapped_image);
 
     //Check if we have a valid extension
     if data_extension.is_none(){
@@ -179,19 +179,19 @@ async fn get_image_recognition_result(image: &Bytes) -> Result<String, (i16, Str
 
     //Get the data extension from our Object
     let data_extension_ref = data_extension.unwrap();
-    let data_url = s3_helpers::store_s3(image, &data_extension_ref, &format!("image/{}", data_extension_ref)).await;
+    let data_url = s3_helpers::store_s3(&unwrapped_image, &unwrapped_image_hash, &data_extension_ref, &format!("image/{}", data_extension_ref)).await;
 
     if data_url.is_none(){
         return Err((500, "We could not store the data in our S3 bucket. Arborting process. Please try again later".to_string()));
     }
     
     //Attempt to add our work to the queue if not exit here.
-    if !worker_service::add_work(&image_hash, &data_url.unwrap(), &String::from("image"), &data_extension_ref).await {
+    if !worker_service::add_work(&unwrapped_image_hash, &data_url.unwrap(), &String::from("image"), &data_extension_ref).await {
         return Err((500, "We could not add the work to the queue. Aborting process. Please try again later".to_string()));
     }
 
 
-    let result = worker_service::get_work_result(&image_hash).await;
+    let result = worker_service::get_work_result(&unwrapped_image_hash).await;
 
     //We could not poll a result in a timely manner this means we likely timed out.
     if result.is_none(){

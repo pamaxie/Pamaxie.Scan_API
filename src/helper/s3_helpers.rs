@@ -3,7 +3,6 @@ use s3::creds::Credentials;
 use s3::{Bucket, Region};
 use crate::helper::misc::get_env_variable;
 
-use super::misc;
 use super::web_helper::get_pam_url;
 
 ///Stores the S3 connection information
@@ -50,7 +49,7 @@ pub(crate) fn get_s3_url() -> String {
 /// let content_type = "text/plain";
 /// store_s3_data(data, data_extension, content_type).await;
 /// ```
-pub async fn store_s3(data: &Bytes, data_extension: &String, content_type: &String) -> Option<String> {
+pub async fn store_s3(data: &Bytes, data_hash: &String, data_extension: &String, content_type: &String) -> Option<String> {
     let credentials = Credentials::from_env_specific(Some(S3_ACCESS_KEY_ENV), Some(S3_ACCESS_KEY_SECRET_ENV), None, None);
     let bucket = Storage {
         region: Region::Custom {
@@ -61,8 +60,7 @@ pub async fn store_s3(data: &Bytes, data_extension: &String, content_type: &Stri
         bucket: get_s3_bucket()
     };
 
-    let data_hash = misc::compute_hash(data);
-    let path = format!("{}.{}", data_hash.await, data_extension);
+    let path = format!("{}.{}", data_hash, data_extension);
 
     //Store our data in the current bucket
     for backend in vec![bucket] {

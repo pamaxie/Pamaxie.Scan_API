@@ -1,26 +1,43 @@
-use std::env;
-
+use std::{env, io::Cursor};
 use actix_web::web::Bytes;
-use blake2::{Blake2b512, Digest};
+use image::{DynamicImage};
 use serde_json::Value;
 
-///Computes the hash of the reached in data
+///Resizes an image
 /// # Arguments
-/// bytes: &Bytes - The data to compute the hash of
+/// bytes: &Bytes - The data of the image to resize
+/// width: &u16 - Width of the image to resize to
+/// height: &u16 - Height of the image to resize to, if left blank it's calculated off of the width
 /// 
 /// # Returns
-/// String - The Blake2b512 hash of the data
-/// 
-/// # Example
-/// ```
-/// use pamaxie_api::data_helpers::compute_hash;
-/// let hash = compute_hash(Bytes::from("Hello World"));
-/// ```
-pub(crate) async fn compute_hash(bytes: &Bytes) -> std::string::String{
-    let mut hasher = Blake2b512::new();
-    hasher.update(bytes);
-    let hash_result = hasher.finalize();
-    return format!("{:x}", hash_result);
+/// Bytes - The resized image
+pub(crate) async fn resize_image(bytes: &Bytes, width: &u32, height: &u32) -> Option<Bytes>{
+    let image = image::load_from_memory(&bytes);
+
+    if image.is_err(){
+        return None;
+    }
+
+    let unwrapped_image = image.unwrap();
+    let resized_image: DynamicImage;
+
+    if height > &0 {
+        resized_image = unwrapped_image.resize(*width, *height, image::imageops::FilterType::Nearest);
+    }else{
+        let ratio =  unwrapped_image.width() as f32 / unwrapped_image.height() as f32;
+        let new_height = *width as f32 * ratio;
+        let new_height_int = new_height as u32;
+        resized_image = unwrapped_image.resize(*width, new_height_int, image::imageops::FilterType::Lanczos3);
+    }
+
+    let mut resized_image_bytes: Vec<u8> = Vec::new();
+    let write_result = resized_image.write_to(&mut Cursor::new(&mut resized_image_bytes), image::ImageOutputFormat::Png);
+
+    if write_result.is_err() {
+        return None;
+    }
+
+    return Some(Bytes::from(resized_image_bytes))
 }
 
 ///Returns the enviorment variable with the given name, or the alternate value if the variable is not set
@@ -98,12 +115,30 @@ pub fn get_image_extension(image: &Bytes) -> Option<String>{
 /// 
 /// # Returns
 /// bool - True if the result is valid, false otherwise
-pub fn validate_recognition_result(result: &Value) -> bool{
-    if (result["Key"].is_null()) || 
-    (result["ScanResult"].is_null()) || 
-    (result["DataType"].is_null()) || 
-    (result["DataExtension"].is_null() ||
-    (result["ScanMachineGuid"].is_null())) {
+pub fn is_valid_recognition_result(result: &Value) -> bool{
+    if result["key"] == "" || 
+    result["scanResult"]== "" || 
+    result["dataType"]== "" || 
+    result["dataExtension"]== "" ||
+    result["scanMachineGuid"]== "" {
+        return false;
+    }
+
+    return true;
+}
+
+///Validates if an item in our queue is validly formatted
+/// 
+/// # Arguments
+/// result: &Value - The result to validate
+/// 
+/// # Returns
+/// bool - True if the result is valid, false otherwise
+pub fn is_valid_queue_item(result: &Value) -> bool{
+    if result["ImageHash"] == "" || 
+    result["ImageUrl"]== "" || 
+    result["DataType"]== "" || 
+    result["DataExtension"]== "" {
         return false;
     }
 
