@@ -41,6 +41,7 @@ fn get_refresh_token() {
                 let token = web_helper::get_pam_token().await;
 
                 if token.is_some() {
+                    mutex.clear();
                     mutex.push_str(token.unwrap().as_str());
                     eprintln!("JWT was {}. \rWe successfully set it to the global value.", mutex.to_string());
                 }else{
