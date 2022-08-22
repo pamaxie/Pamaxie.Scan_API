@@ -164,11 +164,11 @@ pub async fn post_work(req: HttpRequest, body: String) -> HttpResponse {
 }
 
 #[get("scan/v1/worker/get_image/{image_name}")]
-pub async fn get_image(req: HttpRequest, path: web::Path<String>) -> HttpResponse {
-    //Check if this request is authorized to access this API
-    if !web_helper::check_auth(&req).await{
-        return HttpResponse::Unauthorized().finish();
-    }
+pub async fn get_image(path: web::Path<String>) -> HttpResponse {
+    //Disabled for now since it's not really required.
+    //if !web_helper::check_auth(&req).await{
+    //    return HttpResponse::Unauthorized().finish();
+    //}
     
 
     let image_data = s3_helpers::get_s3_item(&path).await;
