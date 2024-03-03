@@ -1,6 +1,6 @@
 ![**Pamaxie**](https://i.imgur.com/6GINCqZ.png)
 
-### It is with a hard feeling in our heart, that we have to announce, that Pamaxie as a project is cancelled. Due to lacking funds and massive changes in the project owners life (Leejja) we currently no longer have the financial or time capacity to maintain it which is why we think it is best that we close this chapter of our life. We are sorry that we could not live up to our promises. We are looking into a cheap way to host our dataset. If possible we may update this page. Due to concerns for the public we might not however (there is some graphic imagry in there which may be quite disturbing or problematic to release)
+### We have started development again. This is a long process and will take a while to get rolling. For now we will focus mostly on our web presence to drive more traffic to the project.
 
 [![Rust](https://github.com/pamaxie/Pamaxie/actions/workflows/rust.yml/badge.svg)](https://github.com/pamaxie/Pamaxie/actions/workflows/rust.yml)
 [![Publish Docker image](https://github.com/pamaxie/Pamaxie/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/pamaxie/Pamaxie/actions/workflows/docker-publish.yml)
